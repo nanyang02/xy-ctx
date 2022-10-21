@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/schema/mybatis-3-config.dtd">
+<configuration>
+    <!-- define property for next rows can use it as global -->
+    <properties>
+        <property name="classDriver" value="com.mysql.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://localhost:3306/test?characterEncoding=utf8&amp;useSSL=false"/>
+        <property name="username" value="root"/>
+        <property name="pwd1" value="root"/>
+        <property name="pwd2" value="pass@word1"/>
+    </properties>
+
+    <environments default="def">
+
+        <environment id="def">
+            <transactionManager type="JDBC"/>
+            <dataSource type="UNPOOLED">
+                <property name="driver" value="${classDriver}"/>
+                <property name="url" value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${pwd1}"/>
+            </dataSource>
+        </environment>
+
+    </environments>
+
+    <mappers>
+        <!-- mapper or package or resource -->
+        <package name="com.xy.mappper"/>
+    </mappers>
+</configuration>

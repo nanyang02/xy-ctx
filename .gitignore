@@ -1,0 +1,9 @@
+.idea
+target
+out
+.vscode
+.eclipse
+*.iml
+
+# only root layer `test` folder ignore.
+/test
