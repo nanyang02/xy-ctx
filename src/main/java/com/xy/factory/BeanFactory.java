@@ -224,6 +224,12 @@ public class BeanFactory {
         }
     }
 
+    /**
+     * 创建Bean的核心
+     *
+     * @param define
+     * @return
+     */
     private Object doCreateBean(final BeanDefine define) {
         // 通过@Bean创建的bean的创建
         if (define.getCreateBeanMethod() != null) {
@@ -416,14 +422,9 @@ public class BeanFactory {
         }
     }
 
-    private Object getDiBean(Object bean) throws IllegalAccessException {
+    private Object getDiBean(Object bean) {
         if (bean instanceof ObjectFactory) {
-            try {
-                return ((ObjectFactory) bean).getObject();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
+            return ((ObjectFactory) bean).getObject();
         } else {
             return bean;
         }
@@ -449,18 +450,26 @@ public class BeanFactory {
         if (definitions.containsKey(alias)) {
             throw new RuntimeException("Has Exists Alias [" + alias + "], please change alias for bean [" + beanClass.getName() + "]");
         }
-        definitions.put(alias, new BeanDefine(beanClass)
-                .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
+
+        if (definitions.containsKey(beanClass.getName())) {
+            definitions.put(alias, definitions.get(beanClass.getName()));
+        } else {
+            definitions.put(alias, new BeanDefine(beanClass)
+                    .setAlias(alias)
+                    .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
+        }
     }
 
     public void regBeanDefinition(Class<?> beanClass, Class<?> interfaceClass) {
-
         Scope scope = beanClass.getAnnotation(Scope.class);
-
         if (definitions.containsKey(interfaceClass.getName())) return;
-        definitions.put(interfaceClass.getName(), new BeanDefine(beanClass)
-                .setInterfaceClass(interfaceClass)
-                .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
+        if (definitions.containsKey(beanClass.getName())) {
+            definitions.put(interfaceClass.getName(), definitions.get(beanClass.getName()));
+        } else {
+            definitions.put(interfaceClass.getName(), new BeanDefine(beanClass)
+                    .setInterfaceClass(interfaceClass)
+                    .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
+        }
     }
 
     public void regBeanDefinition(Class<?> beanClass) {
@@ -498,10 +507,21 @@ public class BeanFactory {
                     }
                 } else if (isService) {
                     String alias = klass.getAnnotation(Service.class).value();
-                    if (alias.length() > 0) {
+
+                    if (alias.length() > 1) {
                         regBeanDefinition(klass, alias);
                     } else {
                         regBeanDefinition(klass);
+                    }
+
+                    // if service -> serviceImpl
+                    if (klass.getInterfaces().length > 0) {
+                        for (Class<?> anInterface : klass.getInterfaces()) {
+                            // 前缀相同的则建立关联
+                            if (klass.getSimpleName().startsWith(anInterface.getSimpleName())) {
+                                regBeanDefinition(klass, anInterface.getName());
+                            }
+                        }
                     }
                 }
             }
@@ -514,7 +534,7 @@ public class BeanFactory {
         ComponentScan scan = c.getAnnotation(ComponentScan.class);
         if (null != scan) {
             String value = scan.value();
-            if (null != value && value.length() > 0) {
+            if (value.length() > 0) {
                 doScan(value);
             } else {
                 String[] packages = scan.packages();
