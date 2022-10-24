@@ -1,6 +1,10 @@
 package com.xy;
 
+import com.xy.context.annotation.Scope;
+import com.xy.stereotype.Component;
 import lombok.Data;
+
+import static com.xy.context.annotation.ScopeType.prototype;
 
 /**
  * Class <code>UserInfo</code>
@@ -9,6 +13,8 @@ import lombok.Data;
  * @since 1.8
  */
 @Data
+@Component
+@Scope(prototype)
 public class UserInfo {
 
     private String username = "admin";

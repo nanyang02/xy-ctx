@@ -4,20 +4,18 @@ import com.xy.beans.BeanDefine;
 import com.xy.beans.BeanGetter;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
-import com.xy.context.annotation.Autowired;
-import com.xy.context.annotation.Bean;
-import com.xy.context.annotation.Dependency;
-import com.xy.context.annotation.Qualifier;
+import com.xy.context.annotation.*;
+import com.xy.stereotype.Component;
+import com.xy.stereotype.ComponentScan;
+import com.xy.stereotype.Controller;
+import com.xy.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 先不做三级缓存,也就是不用AOP增强,采用二级缓存的方式来实现一般的服务类的创建和支持
@@ -48,7 +46,7 @@ public class BeanFactory {
     //三级缓存, bean工厂(代理生成,spring中放 ObjectFactory, 用于生成代理对象) 用于进行对象的增强的处理(比如使用AOP的实现)
     Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
-    public static final Map<String, BeanDefine> definitions = new HashMap<>(128);
+    Map<String, BeanDefine> definitions = new HashMap<>(128);
 
     @SuppressWarnings("all")
     private static <T> T cast(Object o) {
@@ -92,12 +90,21 @@ public class BeanFactory {
      */
     public <T> T getBean(String name) {
         return singletonObjects.containsKey(name) ? cast(singletonObjects.get(name)) :
-                // 如果获取的时候,没有这个bean,尝试在beanDefine中找,如果有立即创建,并返回使用
-                definitions.containsKey(name) ? regBeanByDefineAndGet(definitions.get(name), name) : null;
+
+                singletonFactories.containsKey(name) ? cast(singletonFactories.get(name).getObject()) :
+
+                        definitions.containsKey(name) ? regBeanByDefineAndGet(definitions.get(name), name) :
+                                null;
     }
 
     public <T> T regBeanByDefineAndGet(BeanDefine def, String alias) {
-        regSingletonBean(def);
+        // 如果原型对象，则放入三级缓存中去创建
+        if (def.isPrototype()) {
+            singletonFactories.put(alias, cast(doCreateBean(def)));
+        } else {
+            regSingletonBean(def);
+        }
+
         return getBean(alias);
     }
 
@@ -208,6 +215,9 @@ public class BeanFactory {
                 }
                 // 此处将所有的 define 都初始化完毕了, 开始进行bean的创建和初始化
                 for (BeanDefine bd : definitions.values()) {
+                    if (bd.isPrototype()) continue;
+
+                    // 注册单例
                     regSingletonBean(bd);
                 }
             }
@@ -237,16 +247,26 @@ public class BeanFactory {
             }
         }
 
-        // 通过class直接创建bean
-        if (null != define.getTargetClass()) {
-            Object bean = instance(define.getTargetClass());
-            define.addCache(earlySingletonObjects, bean);
+        if (define.isPrototype()) {
+            return (ObjectFactory) () -> {
+                Object bean = instance(define.getTargetClass());
+                if (bean instanceof ApplicationContextAware) {
+                    ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
+                }
+                return initialBean(bean);
+            };
+        } else {
+            // 通过class直接创建bean
+            if (null != define.getTargetClass()) {
+                Object bean = instance(define.getTargetClass());
+                define.addCache(earlySingletonObjects, bean);
 
-            if (bean instanceof ApplicationContextAware) {
-                ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
+                if (bean instanceof ApplicationContextAware) {
+                    ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
+                }
+
+                return initialBean(bean);
             }
-
-            return initialBean(bean);
         }
 
         return null;
@@ -288,25 +308,7 @@ public class BeanFactory {
     private void beanPropInitial(Object bean, Field[] declaredFields) {
 
         // 提前注册依赖，不然BeanGetter获取的时候出现问题
-        for (Field fd : declaredFields) {
-            // ext Dependency(impl)
-            Dependency dependency = fd.getAnnotation(Dependency.class);
-            if (null != dependency) {
-                // 注册实例
-                Class<?> impl = dependency.value();
-                if (void.class.isAssignableFrom(impl)) {
-                    impl = fd.getType();
-                }
-                if (impl.isInterface()) {
-                    throw new RuntimeException("Dependency Must A interface Impl Instance. At Field: " + fd.getName());
-                }
-                if (fd.getType().isInterface()) {
-                    regBeanDefinition(impl, fd.getType());
-                } else {
-                    regBeanDefinition(impl);
-                }
-            }
-        }
+        registDependecyFields(declaredFields);
 
         // 支持实现了BeanGetter接口的注入和AutoWire注入
         for (Field fd : declaredFields) {
@@ -320,6 +322,32 @@ public class BeanFactory {
             if (null != fd.getAnnotation(Autowired.class)
                     || null != fd.getAnnotation(Dependency.class)) {
                 propInitial(bean, fd, DiType.Autowired);
+            }
+        }
+    }
+
+    private void registDependecyFields(Field[] declaredFields) {
+        for (Field fd : declaredFields) {
+            registDependencyField(fd);
+        }
+    }
+
+    private void registDependencyField(Field fd) {
+        // ext Dependency(impl)
+        Dependency dependency = fd.getAnnotation(Dependency.class);
+        if (null != dependency) {
+            // 注册实例
+            Class<?> impl = dependency.value();
+            if (void.class.isAssignableFrom(impl)) {
+                impl = fd.getType();
+            }
+            if (impl.isInterface()) {
+                throw new RuntimeException("Dependency Must A interface Impl Instance. At Field: " + fd.getName());
+            }
+            if (fd.getType().isInterface()) {
+                regBeanDefinition(impl, fd.getType());
+            } else {
+                regBeanDefinition(impl);
             }
         }
     }
@@ -338,11 +366,19 @@ public class BeanFactory {
                 diBean = earlySingletonObjects.getOrDefault(signature, null);
                 // 如果没有bean的define
                 if (null == diBean) {
+
+                    Qualifier qualifier = fd.getAnnotation(Qualifier.class);
+                    if (null != qualifier && qualifier.value().length() > 0) {
+                        signature = qualifier.value();
+                    }
+
                     if (definitions.containsKey(signature)) {
                         BeanDefine define = definitions.get(signature);
                         diBean = doCreateBean(define);
-                        // 放到一级缓存中去
-                        define.addCache(singletonObjects, diBean);
+                        if (!(diBean instanceof ObjectFactory)) {
+                            // 放到一级缓存中去
+                            define.addCache(singletonObjects, diBean);
+                        }
                     } else {
                         // 如果没有匹配到则失败
                         throw new RuntimeException("No BeanDefine For " + signature);
@@ -365,18 +401,31 @@ public class BeanFactory {
                             o = t;
                         }
                     };
-                    o1.set(diBean);
+                    o1.set(getDiBean(diBean));
                     fd.set(bean, o1);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
             if (isAw) {
-                fd.set(bean, diBean);
+                fd.set(bean, getDiBean(diBean));
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             throw new RuntimeException("Dependency injection Class: " + fd.getName() + " Fail. ");
+        }
+    }
+
+    private Object getDiBean(Object bean) throws IllegalAccessException {
+        if (bean instanceof ObjectFactory) {
+            try {
+                return ((ObjectFactory) bean).getObject();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        } else {
+            return bean;
         }
     }
 
@@ -396,19 +445,89 @@ public class BeanFactory {
     }
 
     public void regBeanDefinition(Class<?> beanClass, String alias) {
+        Scope scope = beanClass.getAnnotation(Scope.class);
         if (definitions.containsKey(alias)) {
             throw new RuntimeException("Has Exists Alias [" + alias + "], please change alias for bean [" + beanClass.getName() + "]");
         }
-        definitions.put(alias, new BeanDefine(beanClass));
+        definitions.put(alias, new BeanDefine(beanClass)
+                .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
     }
 
     public void regBeanDefinition(Class<?> beanClass, Class<?> interfaceClass) {
+
+        Scope scope = beanClass.getAnnotation(Scope.class);
+
         if (definitions.containsKey(interfaceClass.getName())) return;
-        definitions.put(interfaceClass.getName(), new BeanDefine(beanClass).setInterfaceClass(interfaceClass));
+        definitions.put(interfaceClass.getName(), new BeanDefine(beanClass)
+                .setInterfaceClass(interfaceClass)
+                .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
     }
 
     public void regBeanDefinition(Class<?> beanClass) {
+        Scope scope = beanClass.getAnnotation(Scope.class);
         if (definitions.containsKey(beanClass.getName())) return;
-        definitions.put(beanClass.getName(), new BeanDefine(beanClass));
+        definitions.put(beanClass.getName(), new BeanDefine(beanClass)
+                .setPrototype(null != scope && scope.value().ordinal() == ScopeType.prototype.ordinal()));
+    }
+
+    public void doScan(String path) {
+
+        PackageScanner scanner = new PackageScanner() {
+            @Override
+            public void dealClass(Class<?> klass) {
+                /*
+                 * 不考虑注解加在接口上的情况，大部分不会这样的，需要时再扩展
+                 * */
+                boolean isComponent = null != klass.getAnnotation(Component.class);
+                boolean isController = null != klass.getAnnotation(Controller.class);
+                boolean isService = null != klass.getAnnotation(Service.class);
+
+                if (isComponent) {
+                    String alias = klass.getAnnotation(Component.class).value();
+                    if (alias.length() > 0) {
+                        regBeanDefinition(klass, alias);
+                    } else {
+                        regBeanDefinition(klass);
+                    }
+                } else if (isController) {
+                    String alias = klass.getAnnotation(Controller.class).value();
+                    if (alias.length() > 0) {
+                        regBeanDefinition(klass, alias);
+                    } else {
+                        regBeanDefinition(klass);
+                    }
+                } else if (isService) {
+                    String alias = klass.getAnnotation(Service.class).value();
+                    if (alias.length() > 0) {
+                        regBeanDefinition(klass, alias);
+                    } else {
+                        regBeanDefinition(klass);
+                    }
+                }
+            }
+        };
+
+        scanner.packageScanner(path);
+    }
+
+    public void scan(Class<?> c) {
+        ComponentScan scan = c.getAnnotation(ComponentScan.class);
+        if (null != scan) {
+            String value = scan.value();
+            if (null != value && value.length() > 0) {
+                doScan(value);
+            } else {
+                String[] packages = scan.packages();
+                if (packages.length > 0) {
+                    for (String pkg : packages) {
+                        doScan(pkg);
+                    }
+                }
+            }
+        }
+
+        // scan Dependency
+        registDependecyFields(c.getDeclaredFields());
+
     }
 }

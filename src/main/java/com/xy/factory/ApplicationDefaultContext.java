@@ -7,7 +7,7 @@ import com.xy.context.BeanConfigure;
 /**
  * bean容器实现类, 提供具体的容器的注册和获取bean的基本功能
  */
-public class ApplicationDefaultContext implements ApplicationContext {
+public class ApplicationDefaultContext implements ApplicationContext, AutoCloseable {
 
     private final BeanFactory beanFactory = new BeanFactory(getApplicationContext());
 
@@ -72,5 +72,14 @@ public class ApplicationDefaultContext implements ApplicationContext {
 
     public void regProxyBean(Object bean, String alias) {
         beanFactory.regProxyBean(bean, alias);
+    }
+
+    @Override
+    public void close() throws Exception {
+        getApplicationContext().close();
+    }
+
+    public void scan(Class<?> c) {
+        beanFactory.scan(c);
     }
 }

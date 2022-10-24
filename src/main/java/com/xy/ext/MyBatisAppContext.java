@@ -60,6 +60,18 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
     public MyBatisAppContext() {
     }
 
+    public MyBatisAppContext(Class<?> appClass) {
+        // 如果有添加扫描注解，就直接扫描和记录bean的记录信息
+        scan(appClass);
+    }
+
+    public MyBatisAppContext(Class<?> appClass, String[] ds) {
+        this(appClass);
+        this.ds = ds;
+        this.beanConfig = this;
+        registDs();
+    }
+
     public MyBatisAppContext(String[] ds) {
         this.ds = ds;
         this.beanConfig = this;
@@ -99,6 +111,7 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
         return null != bean;
     }
 
+    @Override
     public void close() {
         disconnectDatasource();
     }
