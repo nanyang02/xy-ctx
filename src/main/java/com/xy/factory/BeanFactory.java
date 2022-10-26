@@ -480,7 +480,9 @@ public class BeanFactory {
         Scope scope = beanClass.getAnnotation(Scope.class);
         if (definitions.containsKey(interfaceClass.getName())) return;
         if (definitions.containsKey(beanClass.getName())) {
-            definitions.put(interfaceClass.getName(), definitions.get(beanClass.getName()));
+            BeanDefine beanDefine = definitions.get(beanClass.getName());
+            beanDefine.setInterfaceClass(interfaceClass);
+            definitions.put(interfaceClass.getName(), beanDefine);
         } else {
             definitions.put(interfaceClass.getName(), new BeanDefine(beanClass)
                     .setInterfaceClass(interfaceClass)
@@ -535,7 +537,7 @@ public class BeanFactory {
                         for (Class<?> anInterface : klass.getInterfaces()) {
                             // 前缀相同的则建立关联
                             if (klass.getSimpleName().startsWith(anInterface.getSimpleName())) {
-                                regBeanDefinition(klass, anInterface.getName());
+                                regBeanDefinition(klass, anInterface);
                             }
                         }
                     }
