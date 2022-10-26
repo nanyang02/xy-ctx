@@ -265,12 +265,15 @@ public class BeanFactory {
             // 通过class直接创建bean
             if (null != define.getTargetClass()) {
                 Object bean = instance(define.getTargetClass());
+                // 提前暴露二级缓存
                 define.addCache(earlySingletonObjects, bean);
 
+                // 注入ctx
                 if (bean instanceof ApplicationContextAware) {
                     ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
                 }
 
+                // 初始化
                 return initialBean(bean);
             }
         }
@@ -380,7 +383,18 @@ public class BeanFactory {
 
                     if (definitions.containsKey(signature)) {
                         BeanDefine define = definitions.get(signature);
-                        diBean = doCreateBean(define);
+
+                        // 此处注意，如果直接创建是不合理的，因为解析的签名可能是接口呢
+                        if (define.isInterface()) {
+                            diBean = singletonObjects.getOrDefault(define.getName(), null);
+                            if (null == diBean) {
+                                diBean = earlySingletonObjects.getOrDefault(define.getName(), null);
+                            }
+                        }
+
+                        // 再做判定，如果还是null再创建不迟
+                        if (diBean == null) diBean = doCreateBean(define);
+
                         if (!(diBean instanceof ObjectFactory)) {
                             // 放到一级缓存中去
                             define.addCache(singletonObjects, diBean);
@@ -416,10 +430,12 @@ public class BeanFactory {
             if (isAw) {
                 fd.set(bean, getDiBean(diBean));
             }
-        } catch (IllegalAccessException e) {
+        } catch (
+                IllegalAccessException e) {
             e.printStackTrace();
             throw new RuntimeException("Dependency injection Class: " + fd.getName() + " Fail. ");
         }
+
     }
 
     private Object getDiBean(Object bean) {
