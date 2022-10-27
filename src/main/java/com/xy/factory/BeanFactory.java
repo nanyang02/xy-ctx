@@ -2,6 +2,7 @@ package com.xy.factory;
 
 import com.xy.beans.BeanDefine;
 import com.xy.beans.BeanGetter;
+import com.xy.beans.BeansException;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
 import com.xy.context.annotation.*;
@@ -241,13 +242,9 @@ public class BeanFactory {
                 // 提前放入二级缓存中
                 define.addCache(earlySingletonObjects, bean);
 
-                // 提供ctx上下文
-                if (bean instanceof ApplicationContextAware) {
-                    ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
-                }
+                // 初始化处理
+                return beanInitProcess(bean);
 
-                // 初始化
-                return initialBean(bean);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
@@ -256,10 +253,9 @@ public class BeanFactory {
         if (define.isPrototype()) {
             return (ObjectFactory) () -> {
                 Object bean = instance(define.getTargetClass());
-                if (bean instanceof ApplicationContextAware) {
-                    ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
-                }
-                return initialBean(bean);
+
+                // 初始化处理
+                return beanInitProcess(bean);
             };
         } else {
             // 通过class直接创建bean
@@ -268,17 +264,32 @@ public class BeanFactory {
                 // 提前暴露二级缓存
                 define.addCache(earlySingletonObjects, bean);
 
-                // 注入ctx
-                if (bean instanceof ApplicationContextAware) {
-                    ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
-                }
-
-                // 初始化
-                return initialBean(bean);
+                // 初始化处理
+                return beanInitProcess(bean);
             }
         }
 
         return null;
+    }
+
+    private Object beanInitProcess(Object bean) {
+        // 提供ctx上下文
+        if (bean instanceof ApplicationContextAware) {
+            ((ApplicationContextAware) bean).setApplicationContext(applicationContext);
+        }
+
+        // 初始化
+        initialBean(bean);
+
+        if (bean instanceof InitializingBean) {
+            try {
+                ((InitializingBean) bean).afterPropertiesSet();
+            } catch (Exception e) {
+                throw new BeansException(e.getMessage(), e);
+            }
+        }
+
+        return bean;
     }
 
     private void parentPropInitial(Object bean, Class<?> c) {

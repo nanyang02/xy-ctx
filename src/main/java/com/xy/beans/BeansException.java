@@ -1,6 +1,6 @@
 package com.xy.beans;
 
-public abstract class BeansException extends RuntimeException {
+public class BeansException extends RuntimeException {
     public BeansException(String msg) {
         super(msg);
     }
