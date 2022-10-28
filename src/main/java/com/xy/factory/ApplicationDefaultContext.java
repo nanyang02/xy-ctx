@@ -75,8 +75,9 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
     }
 
     @Override
-    public void close() throws Exception {
-        getApplicationContext().close();
+    public void close() {
+        if (getApplicationContext() != this)
+            getApplicationContext().close();
     }
 
     public void scan(Class<?> c) {
