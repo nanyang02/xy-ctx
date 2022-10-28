@@ -558,7 +558,8 @@ public class BeanFactory {
                     if (!mapperInterface && klass.getInterfaces().length > 0) {
                         for (Class<?> anInterface : klass.getInterfaces()) {
                             // 前缀相同的则建立关联
-                            if (klass.getSimpleName().startsWith(anInterface.getSimpleName())) {
+                            if (klass.getSimpleName().startsWith(anInterface.getSimpleName())
+                        || klass.getSimpleName().endsWith(anInterface.getSimpleName())) {
                                 regBeanDefinition(klass, anInterface);
                             }
                         }
