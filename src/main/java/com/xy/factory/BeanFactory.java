@@ -61,12 +61,14 @@ public class BeanFactory {
      * @param <T> 对象类型
      * @return 对象
      */
-    private static <T> T instance(Class<T> c) {
+    private static <T> T instance(Class<T> c) throws InstantiationException {
         T o = null;
         try {
             o = c.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            throw new InstantiationException("can't instantiation, may be because of dependency inject obj is null, you can replace implements InitializingBean to resolve it");
         }
         return o;
     }
@@ -252,20 +254,27 @@ public class BeanFactory {
 
         if (define.isPrototype()) {
             return (ObjectFactory) () -> {
-                Object bean = instance(define.getTargetClass());
-
-                // 初始化处理
-                return beanInitProcess(bean);
+                try {
+                    // 初始化处理
+                    Object bean = instance(define.getTargetClass());
+                    return beanInitProcess(bean);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                }
+                return null;
             };
         } else {
             // 通过class直接创建bean
             if (null != define.getTargetClass()) {
-                Object bean = instance(define.getTargetClass());
-                // 提前暴露二级缓存
-                define.addCache(earlySingletonObjects, bean);
-
-                // 初始化处理
-                return beanInitProcess(bean);
+                try {
+                    Object bean = instance(define.getTargetClass());
+                    // 提前暴露二级缓存
+                    define.addCache(earlySingletonObjects, bean);
+                    // 初始化处理
+                    return beanInitProcess(bean);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -535,7 +544,9 @@ public class BeanFactory {
                         regBeanDefinition(klass);
                     }
                 } else if (isService) {
-                    String alias = klass.getAnnotation(Service.class).value();
+                    Service service = klass.getAnnotation(Service.class);
+                    String alias = service.value();
+                    boolean mapperInterface = service.ignoreSupper();
 
                     if (alias.length() > 1) {
                         regBeanDefinition(klass, alias);
@@ -544,7 +555,7 @@ public class BeanFactory {
                     }
 
                     // if service -> serviceImpl
-                    if (klass.getInterfaces().length > 0) {
+                    if (!mapperInterface && klass.getInterfaces().length > 0) {
                         for (Class<?> anInterface : klass.getInterfaces()) {
                             // 前缀相同的则建立关联
                             if (klass.getSimpleName().startsWith(anInterface.getSimpleName())) {
