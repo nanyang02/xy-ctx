@@ -1,8 +1,15 @@
 package com.xy.factory;
 
 
+import com.xy.beans.BeanDefine;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
+import com.xy.stereotype.Controller;
+import com.xy.web.XyDispacher;
+import com.xy.web.annotation.EnableWeb;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * bean容器实现类, 提供具体的容器的注册和获取bean的基本功能
@@ -10,6 +17,16 @@ import com.xy.context.BeanConfigure;
 public class ApplicationDefaultContext implements ApplicationContext, AutoCloseable {
 
     private final BeanFactory beanFactory = new BeanFactory(getApplicationContext());
+
+    private final XyDispacher dispacher = new XyDispacher();
+
+    public void webDispatcherJoin() {
+        try {
+            dispacher.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * 提供给AppContextAware提供环境对象使用
@@ -82,5 +99,23 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     public void scan(Class<?> c) {
         beanFactory.scan(c);
+    }
+
+    // 支持简单的mapping的映射支持，目前还不支持解析参数
+    public void useWeb(Class<?> c) {
+        EnableWeb annotation = c.getAnnotation(EnableWeb.class);
+        if (null != annotation) {
+            Set<Class<?>> controllerClassList = new HashSet<>();
+
+            for (BeanDefine value : beanFactory.definitions.values()) {
+                if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
+                boolean add = controllerClassList.add(value.getTargetClass());
+                if (add) {
+                    dispacher.addMapping(getBean(value.getTargetClass()));
+                }
+            }
+            // 启动服务
+            dispacher.start();
+        }
     }
 }
