@@ -9,9 +9,11 @@ import com.xy.factory.ApplicationDefaultContext;
 import com.xy.factory.InitializingBean;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
+import com.xy.web.annotation.Var;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -75,7 +77,28 @@ public class XyDispacher extends Thread {
                         response.setRequest(request);
                         if (null != request.getUri() && controllerMapping.containsKey(request.getUri())) {
                             MappingDefinition definition = controllerMapping.get(request.getUri());
-                            Object apply = definition.getCall().apply(request.getArgs());
+
+                            // 需要获取方法的参数列表的类型
+                            Class<?>[] parameterTypes = definition.getMappingMethod().getParameterTypes();
+                            Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
+                            Object[] args = new Object[parameterTypes.length];
+                            Map<String, String> argsMap = request.getArgs();
+                            for (int i = 0; i < parameterTypes.length; i++) {
+                                Class<?> type = parameterTypes[i];
+                                Annotation[] parameterAnnotation = parameterAnnotations[i];
+                                if (parameterAnnotation.length > 0 && parameterAnnotation[0].annotationType() == Var.class) {
+                                    Var var = (Var) parameterAnnotation[0];
+                                    if (null != var) {
+                                        String val = argsMap.get(var.value());
+                                        if (null == val)
+                                            args[i] = null;
+                                        else
+                                            args[i] = JSON.parseObject(val, type);
+                                    }
+                                }
+                            }
+
+                            Object apply = definition.getCall().apply(args);
                             boolean isPlain = definition.type.ordinal() == RequestMapping.Type.PLAIN.ordinal();
                             response.responseJson(apply == null ? null : isPlain ? apply.toString() : JSON.toJSONString(apply), isPlain);
                         } else {

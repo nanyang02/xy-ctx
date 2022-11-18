@@ -2,12 +2,18 @@ package com.xy.web;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Request {
 
     private InputStream input;
     private String uri;
-    private Object[] args = {};
+    private Map<String, String> args = new HashMap<>();
 
     public Request(InputStream input) {
         this.input = input;
@@ -33,20 +39,44 @@ public class Request {
 
     private String parseUri(String requestString) {
         int index1, index2;
+        String url = null, uri = null;
         index1 = requestString.indexOf(' ');
         if (index1 != -1) {
             index2 = requestString.indexOf(' ', index1 + 1);
-            if (index2 > index1)
-                return requestString.substring(index1 + 1, index2);
+            if (index2 > index1) {
+                url = requestString.substring(index1 + 1, index2);
+            }
         }
-        return null;
+        try {
+            url = URLDecoder.decode(url, "UTF-8");
+            int i = url.indexOf("?");
+            if(i!=-1) {
+                uri = url.substring(0, i);
+                if(url.length() > i+1) {
+                    String[] split = url.substring(i + 1).split("&");
+                    for (String s : split) {
+                        String[] kv = s.split("=");
+                        if(kv.length > 1) {
+                            args.put(kv[0], kv[1]);
+                        } else {
+                            args.put(kv[0], "");
+                        }
+                    }
+                }
+            } else {
+                uri = url;
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return uri;
     }
 
     public String getUri() {
         return uri;
     }
 
-    public Object[] getArgs() {
+    public Map<String, String> getArgs() {
         return args;
     }
 }

@@ -32,7 +32,7 @@ public class WebServer {
         System.out.println("run web server.");
 
         // waite web server stop
-        // ctx.webDispatcherJoin();
-        // System.out.println("Test Over");
+         ctx.webDispatcherJoin();
+         System.out.println("Test Over");
     }
 }

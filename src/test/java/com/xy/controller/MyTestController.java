@@ -3,6 +3,7 @@ package com.xy.controller;
 import com.xy.stereotype.Controller;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
+import com.xy.web.annotation.Var;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -23,15 +24,17 @@ public class MyTestController {
     }
 
     @RestMapping("/api/test1")
-    public Object testJson() {
+    public Object testJson(@Var("id") String id, @Var("name") String name) {
 
         Map<String, Object> map = new HashMap<>();
 
-        map.put("name", "test case.");
+        map.put("desc", "test case.");
         map.put("addr", "China.Wuhan");
         map.put("date", new Date());
         map.put("ts", System.currentTimeMillis());
         map.put("author", "xy");
+        map.put("id", id);
+        map.put("name", name);
 
         return map;
     }
