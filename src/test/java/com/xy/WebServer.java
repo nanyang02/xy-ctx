@@ -14,7 +14,6 @@ import org.junit.Test;
  * @author yangnan 2022/11/18 10:34
  * @since 1.8
  */
-@EnableWeb
 @ComponentScan("com.xy.controller")
 public class WebServer {
 
@@ -22,9 +21,9 @@ public class WebServer {
 
     @Before
     public void before() {
-        ctx = new ApplicationDefaultContext();
-        ctx.scan(WebServer.class);
-        ctx.useWeb(WebServer.class);
+//        ctx = new ApplicationDefaultContext();
+//        ctx.scan(WebServer.class);
+//        ctx.useWeb(WebServer.class);
     }
 
     @Test
@@ -32,7 +31,7 @@ public class WebServer {
         System.out.println("run web server.");
 
         // waite web server stop
-         ctx.webDispatcherJoin();
-         System.out.println("Test Over");
+//         ctx.webDispatcherJoin();
+//         System.out.println("Test Over");
     }
 }

@@ -2,11 +2,6 @@ package com.xy.web;
 
 
 import com.alibaba.fastjson.JSON;
-import com.xy.beans.BeansException;
-import com.xy.context.ApplicationContext;
-import com.xy.factory.ApplicationContextAware;
-import com.xy.factory.ApplicationDefaultContext;
-import com.xy.factory.InitializingBean;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
 import com.xy.web.annotation.Var;
@@ -19,9 +14,14 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Class <code>WebDispacther</code> 完成请求的接入
@@ -53,6 +53,22 @@ public class XyDispacher extends Thread {
 
     // the shutdown command received
     private static boolean shutdown = false;
+
+    private static final List<String> boolPool = Arrays.asList("true", "1", "on");
+
+    private static Date parseDate(String time) {
+        try {
+            time = time.replaceAll("[-/年月]", "-");
+            time = time.replaceAll("日", "");
+            if (time.length() <= 10) {
+                return new SimpleDateFormat("yyyy-MM-dd").parse(time);
+            } else {
+                return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(time);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     /**
      * 基本思路： 采用单个线程来完成服务接受，然后用线程池来完成服务的响应
@@ -90,10 +106,29 @@ public class XyDispacher extends Thread {
                                     Var var = (Var) parameterAnnotation[0];
                                     if (null != var) {
                                         String val = argsMap.get(var.value());
+                                        Supplier<Object> call = () -> {
+                                            if (String.class == type) {
+                                                return val;
+                                            } else if (Integer.class == type) {
+                                                return Integer.valueOf(val);
+                                            } else if (Date.class == type) {
+                                                return val.matches("\\d*") ? new Date(Long.parseLong(val)) : parseDate(val);
+                                            } else if (Long.class == type) {
+                                                return Long.parseLong(val);
+                                            } else if (Boolean.class == type) {
+                                                return boolPool.contains(val);
+                                            } else {
+                                                try {
+                                                    return JSON.parseObject(val, type);
+                                                } catch (Exception e) {
+                                                    return null;
+                                                }
+                                            }
+                                        };
                                         if (null == val)
                                             args[i] = null;
                                         else
-                                            args[i] = JSON.parseObject(val, type);
+                                            args[i] = call.get();
                                     }
                                 }
                             }

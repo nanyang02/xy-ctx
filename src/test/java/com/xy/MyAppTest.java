@@ -23,45 +23,45 @@ import java.util.Date;
 @ComponentScan("com.xy")
 public class MyAppTest {
 
-    static MyBatisAppContext ctx = new MyBatisAppContext(MyAppTest.class);
-
-    @Before
-    public void before() {
-        ctx.registDs(new String[]{"jdbc", "mybatis.xml"});
-    }
-
-    @After
-    public void after() {
-        ctx.close();
-    }
-
-    @Autowired
-    UserDao userDao;
-
-    @Autowired
-    MyService myService;
-
-    private BeanGetter<UserInfo> userInfo2;
-
-    @Test
-    public void x() {
-        // autowired dependency beanGetter 会自动注入
-        ctx.beanPropInitial(this);
-
-        Date i = userDao.nowDate();
-
-        String username1 = ctx.getBean(UserInfo.class).getUsername();
-        System.out.println(username1);
-
-        String username = userInfo2.get().getUsername();
-
-        System.out.println(i + "" + username);
-
-
-        myService.sayhi();
-
-        UserInfo ui2 = ctx.getBean(UserInfo.class);
-        System.out.println(ui2.toString());
-    }
+//    static MyBatisAppContext ctx = new MyBatisAppContext(MyAppTest.class);
+//
+//    @Before
+//    public void before() {
+//        ctx.registDs(new String[]{"jdbc", "mybatis.xml"});
+//    }
+//
+//    @After
+//    public void after() {
+//        ctx.close();
+//    }
+//
+//    @Autowired
+//    UserDao userDao;
+//
+//    @Autowired
+//    MyService myService;
+//
+//    private BeanGetter<UserInfo> userInfo2;
+//
+//    @Test
+//    public void x() {
+//        // autowired dependency beanGetter 会自动注入
+//        ctx.beanPropInitial(this);
+//
+//        Date i = userDao.nowDate();
+//
+//        String username1 = ctx.getBean(UserInfo.class).getUsername();
+//        System.out.println(username1);
+//
+//        String username = userInfo2.get().getUsername();
+//
+//        System.out.println(i + "" + username);
+//
+//
+//        myService.sayhi();
+//
+//        UserInfo ui2 = ctx.getBean(UserInfo.class);
+//        System.out.println(ui2.toString());
+//    }
 
 }

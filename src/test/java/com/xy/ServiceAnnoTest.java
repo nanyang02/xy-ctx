@@ -29,24 +29,24 @@ public class ServiceAnnoTest {
     @Test
     public void x() {
 
-        try (MyBatisAppContext ctx = new MyBatisAppContext(
-                ServiceAnnoTest.class,
-                new String[]{"jdbc", "mybatis.xml"}
-        )) {
-
-            // 完成测试类的属性注入
-            ctx.beanPropInitial(this);
-
-            // 调用测试类
-            myService.eatApple();
-
-            // 测试多例对象
-            UserInfo ui2 = ctx.getBean(UserInfo.class);
-
-            // 输出测试
-            System.out.println(ui2.toString());
-            // System.out.println(userDao.nowDate());
-        }
+//        try (MyBatisAppContext ctx = new MyBatisAppContext(
+//                ServiceAnnoTest.class,
+//                new String[]{"jdbc", "mybatis.xml"}
+//        )) {
+//
+//            // 完成测试类的属性注入
+//            ctx.beanPropInitial(this);
+//
+//            // 调用测试类
+//            myService.eatApple();
+//
+//            // 测试多例对象
+//            UserInfo ui2 = ctx.getBean(UserInfo.class);
+//
+//            // 输出测试
+//            System.out.println(ui2.toString());
+//            // System.out.println(userDao.nowDate());
+//        }
     }
 
 }
