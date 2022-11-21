@@ -591,4 +591,8 @@ public class BeanFactory {
         registDependecyFields(c.getDeclaredFields());
 
     }
+
+    public void onlyScan(String pkg) {
+        doScan(pkg);
+    }
 }

@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
 /**

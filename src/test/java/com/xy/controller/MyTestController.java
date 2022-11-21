@@ -1,6 +1,7 @@
 package com.xy.controller;
 
 import com.xy.stereotype.Controller;
+import com.xy.web.annotation.Json;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
 import com.xy.web.annotation.Var;
@@ -23,7 +24,7 @@ public class MyTestController {
         return "Hi, Tom";
     }
 
-    @RestMapping("/api/test1")
+    @RestMapping("/api/test1") // http://localhost:8080/api/test1
     public Object testJson(@Var("id") String id, @Var("name") String name) {
 
         Map<String, Object> map = new HashMap<>();
@@ -44,4 +45,14 @@ public class MyTestController {
         return "use '/SHUTDOWN' stop server";
     }
 
+
+    @RestMapping("/api/getUserInfo")
+    public UserInfo getUserInfo(@Json UserInfo userInfo) {
+        return userInfo;
+    }
+
+    @RestMapping("/api/getIdName")
+    public IdNameBo getIdName(@Var("id") String id, @Var("name") String name) {
+        return new IdNameBo().setId(id).setName(name);
+    }
 }

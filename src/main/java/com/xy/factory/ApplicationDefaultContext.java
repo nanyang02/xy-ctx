@@ -101,27 +101,35 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
         beanFactory.scan(c);
     }
 
+    public void scan(String c) {
+        beanFactory.onlyScan(c);
+    }
+
     // 支持简单的mapping的映射支持，目前还不支持解析参数
     public void useWeb(Class<?> c, Integer port) {
         EnableWeb annotation = c.getAnnotation(EnableWeb.class);
         if (null != annotation) {
-            Set<Class<?>> controllerClassList = new HashSet<>();
-
-            for (BeanDefine value : beanFactory.definitions.values()) {
-                if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
-                boolean add = controllerClassList.add(value.getTargetClass());
-                if (add) {
-                    dispacher.addMapping(getBean(value.getTargetClass()));
-                }
-            }
-
-            if (null != port) {
-                dispacher.setPort(port);
-            }
-
-            // 启动服务
-            dispacher.start();
+            useWeb(port);
         }
+    }
+
+    public void useWeb(Integer port) {
+        Set<Class<?>> controllerClassList = new HashSet<>();
+
+        for (BeanDefine value : beanFactory.definitions.values()) {
+            if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
+            boolean add = controllerClassList.add(value.getTargetClass());
+            if (add) {
+                dispacher.addMapping(getBean(value.getTargetClass()));
+            }
+        }
+
+        if (null != port) {
+            dispacher.setPort(port);
+        }
+
+        // 启动服务
+        dispacher.start();
     }
 
     public void useWeb(Class<?> c) {

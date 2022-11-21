@@ -2,6 +2,7 @@ package com.xy.web;
 
 
 import com.alibaba.fastjson.JSON;
+import com.xy.web.annotation.Json;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
 import com.xy.web.annotation.Var;
@@ -102,7 +103,7 @@ public class XyDispacher extends Thread {
                             Class<?>[] parameterTypes = definition.getMappingMethod().getParameterTypes();
                             Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
                             Object[] args = new Object[parameterTypes.length];
-                            Map<String, String> argsMap = request.getArgs();
+                            Map<String, String> argsMap = request.getRequestParams().getParams();
                             for (int i = 0; i < parameterTypes.length; i++) {
                                 Class<?> type = parameterTypes[i];
                                 Annotation[] parameterAnnotation = parameterAnnotations[i];
@@ -134,6 +135,8 @@ public class XyDispacher extends Thread {
                                         else
                                             args[i] = call.get();
                                     }
+                                } else if (parameterAnnotation.length > 0 && parameterAnnotation[0].annotationType() == Json.class) {
+                                    args[i] = JSON.parseObject(request.getRequestParams().getBodyJson(), type);
                                 }
                             }
 
