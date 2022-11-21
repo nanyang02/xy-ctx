@@ -64,7 +64,30 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
         this(appClass, null);
     }
 
+    public MyBatisAppContext(Class<?> appClass, int port) {
+        // 如果有添加扫描注解，就直接扫描和记录bean的记录信息
+        scan(appClass);
+        // web
+        useWeb(appClass, port);
+    }
+
+
+
     public MyBatisAppContext(Class<?> appClass, String[] ds) {
+        if (null != ds) {
+            this.ds = ds;
+            this.beanConfig = this;
+            registDs();
+        }
+
+        // 如果有添加扫描注解，就直接扫描和记录bean的记录信息
+        scan(appClass);
+
+        // web
+        useWeb(appClass);
+    }
+
+    public MyBatisAppContext(Class<?> appClass, String[] ds, int port) {
         if (null != ds) {
             this.ds = ds;
             this.beanConfig = this;
@@ -73,7 +96,7 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
         // 如果有添加扫描注解，就直接扫描和记录bean的记录信息
         scan(appClass);
         // web
-        useWeb(appClass);
+        useWeb(appClass, port);
     }
 
     public MyBatisAppContext(String[] ds) {

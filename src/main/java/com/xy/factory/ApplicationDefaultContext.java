@@ -102,7 +102,7 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
     }
 
     // 支持简单的mapping的映射支持，目前还不支持解析参数
-    public void useWeb(Class<?> c) {
+    public void useWeb(Class<?> c, Integer port) {
         EnableWeb annotation = c.getAnnotation(EnableWeb.class);
         if (null != annotation) {
             Set<Class<?>> controllerClassList = new HashSet<>();
@@ -114,8 +114,17 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
                     dispacher.addMapping(getBean(value.getTargetClass()));
                 }
             }
+
+            if (null != port) {
+                dispacher.setPort(port);
+            }
+
             // 启动服务
             dispacher.start();
         }
+    }
+
+    public void useWeb(Class<?> c) {
+        useWeb(c, null);
     }
 }

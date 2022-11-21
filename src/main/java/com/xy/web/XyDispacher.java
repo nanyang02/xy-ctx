@@ -35,9 +35,13 @@ public class XyDispacher extends Thread {
             new SynchronousQueue<Runnable>());
 
     private static ServerSocket serverSocket;
-    private static int port = 8665;
+    private int port = 8665;
 
     private Map<String, MappingDefinition> controllerMapping = new ConcurrentHashMap<>();
+
+    public void setPort(int port) {
+        this.port = port;
+    }
 
     /**
      * WEB_ROOT is the directory where our HTML and other files reside. For this
