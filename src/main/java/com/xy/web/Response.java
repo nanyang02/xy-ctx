@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /*
@@ -96,8 +97,8 @@ public class Response {
 
         StringBuilder respHeader = new StringBuilder();
         try {
-            byte[] data = content.getBytes("UTF-8");
-            String contentType = plainText ? "text/html;UTF-8" : "application/json;charset=UTF-8";
+            byte[] data = content.getBytes(StandardCharsets.UTF_8);
+            String contentType = plainText ? "text/plain;UTF-8" : "application/json;charset=UTF-8";
             respHeader
                     .append("HTTP/1.1 200 OK").append(newLine())
                     .append("Server: Java HTTP Server from SSaurel : 1.0").append(newLine())
@@ -108,7 +109,7 @@ public class Response {
                     // blank line between headers and content, very important !
                     .append(newLine())
             ;
-            output.write(respHeader.toString().getBytes("UTF-8"));
+            output.write(respHeader.toString().getBytes(StandardCharsets.UTF_8));
             output.write(data);
             output.flush();
         } catch (IOException e) {
@@ -116,12 +117,35 @@ public class Response {
         }
     }
 
-    public void resonseError(String message) {
+    public void response302(String path) {
         StringBuilder respHeader = new StringBuilder();
         try {
-            byte[] data = message.getBytes("UTF-8");
+            // 301 Moved Permanently 永久重定向 --> 搜索引擎会自动更新链接地址
+            // 302 Moved Temporarily 临时重定向 --> 搜索引擎不会自动更新链接地址
             respHeader
-                    .append("HTTP/1.1 500 Server Error").append(newLine())
+                    .append("HTTP/1.1 302 Moved Temporarily").append(newLine())
+                    .append("Server: Java HTTP Server from SSaurel : 1.0").append(newLine())
+                    .append("Date: ").append(new Date()).append(newLine())
+                    .append("Content-type: ").append("text/plain;UTF-8").append(newLine())
+                    .append("Content-length: ").append(0).append(newLine())
+                    .append("Location: ").append(path).append(newLine())
+                    .append("Cache-control: no-cache, no-store, max-age=0").append(newLine())
+                    // blank line between headers and content, very important !
+                    .append(newLine())
+            ;
+            output.write(respHeader.toString().getBytes(StandardCharsets.UTF_8));
+            output.flush();
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    public void resonse500(String message) {
+        StringBuilder respHeader = new StringBuilder();
+        try {
+            byte[] data = message.getBytes(StandardCharsets.UTF_8);
+            respHeader
+                    .append("HTTP/1.1 500 HTTP-Internal Server Error").append(newLine())
                     .append("Server: Java HTTP Server from SSaurel : 1.0").append(newLine())
                     .append("Date: ").append(new Date()).append(newLine())
                     .append("Content-type: ").append("text/html;UTF-8").append(newLine())
@@ -130,19 +154,11 @@ public class Response {
                     // blank line between headers and content, very important !
                     .append(newLine())
             ;
-            output.write(respHeader.toString().getBytes("UTF-8"));
+            output.write(respHeader.toString().getBytes(StandardCharsets.UTF_8));
             output.write(data);
             output.flush();
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }
-    }
-
-    // return supported MIME Types
-    private String getContentType(String fileRequested) {
-        if (fileRequested.endsWith(".htm") || fileRequested.endsWith(".html"))
-            return "text/html";
-        else
-            return "text/plain";
     }
 }

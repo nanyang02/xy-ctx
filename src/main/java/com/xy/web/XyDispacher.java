@@ -108,7 +108,7 @@ public class XyDispacher extends Thread {
                             try {
                                 request.parse();
                             } catch (Exception e) {
-                                response.resonseError("500, Inner fault. can't parse request params.");
+                                response.resonse500("500, Inner fault. can't parse request params.");
                                 return;
                             }
 
@@ -173,11 +173,16 @@ public class XyDispacher extends Thread {
                 } catch (Exception e) {
                     logger.error("json响应序列化出错", e);
                     String message = e.getMessage();
-                    response.resonseError(message);
+                    response.resonse500(message);
                     return;
                 }
             } else {
-                resultMessage = apply.toString();
+                resultMessage = apply.toString().trim();
+                if(resultMessage.startsWith("redirect:")) {
+                    // 重定向
+                    response.response302(resultMessage.substring(9));
+                    return;
+                }
             }
             response.responseJson(resultMessage);
         }
@@ -290,7 +295,7 @@ public class XyDispacher extends Thread {
         }
     }
 
-    public <T> void addMapping(Object controller) {
+    public void addMapping(Object controller) {
         Method[] methods = controller.getClass().getMethods();
         for (Method method : methods) {
 

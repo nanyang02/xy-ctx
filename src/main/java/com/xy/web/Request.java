@@ -39,13 +39,10 @@ public class Request {
     }
 
     private RequestParams parseParams(String content) {
-
-        int firstLn = content.indexOf("\n");
-
         RequestParams instace = RequestParams.getInstace();
-        instace.setLineSplit(content.charAt(firstLn - 1) == '\r' ? "\r\n" : "\n");
+        instace.setLineSplit("\r\n");
 
-        String[] split = content.split("\n");
+        String[] split = content.split("\r\n");
         String[] base = split[0].split(" ");
         instace.setMethod(base[0].toUpperCase().trim());
         instace.setPath(base[1].trim());
@@ -59,7 +56,9 @@ public class Request {
             do {
                 line = split[++i];
                 doParseHeader(instace, line);
-            } while ((i + 1) < split.length && (split[i + 1].length() > 2 || !instace.getLineSplit().equals(split[i + 1] + "\n")));
+
+                // 如果没有后续
+            } while ((i + 1) < split.length && (split[i+1].length() > 0));
         } catch (Exception e) {
             logger.error("请求头解析出错", e);
         }
@@ -103,7 +102,8 @@ public class Request {
     }
 
     private void parseUrlEncoded(RequestParams instace, String[] split, int i) throws UnsupportedEncodingException {
-        String str = concatLast(split, i);
+        // 注意需要进行编码的解码，中文需要解码
+        String str = URLDecoder.decode(concatLast(split, i), "UTF-8");
         // username=22&dsds==32323
         if (str.length() > 0) {
             String[] kvs = str.split("&");

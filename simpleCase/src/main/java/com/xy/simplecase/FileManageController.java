@@ -13,10 +13,16 @@ public class FileManageController {
 
     static final String home = System.getProperty("user.dir");
 
+    // http://localhost:8080/getHome
     @RestMapping("/getHome")
     public String getHomePath() {
         logger.info(home);
         return home;
     }
 
+    // http://localhost:8080/api/to302home
+    @RequestMapping("/api/to302home")
+    public String to302home() {
+        return "redirect:/getHome";
+    }
 }
