@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  * @since 1.8
  */
 public class XyDispacher extends Thread {
-    private ExecutorService pool = new ThreadPoolExecutor(2, Integer.MAX_VALUE,
+    private ExecutorService pool = new ThreadPoolExecutor(2, 50,
             60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>());
 
@@ -54,7 +54,6 @@ public class XyDispacher extends Thread {
 
     // shutdown command
     private static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
-
 
     // the shutdown command received
     private static boolean shutdown = false;
@@ -96,55 +95,11 @@ public class XyDispacher extends Thread {
                         // create Response object
                         Response response = new Response(cli.getOutputStream());
                         response.setRequest(request);
+
                         if (null != request.getUri() && controllerMapping.containsKey(request.getUri())) {
-                            MappingDefinition definition = controllerMapping.get(request.getUri());
-
-                            // 需要获取方法的参数列表的类型
-                            Class<?>[] parameterTypes = definition.getMappingMethod().getParameterTypes();
-                            Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
-                            Object[] args = new Object[parameterTypes.length];
-                            Map<String, String> argsMap = request.getRequestParams().getParams();
-                            for (int i = 0; i < parameterTypes.length; i++) {
-                                Class<?> type = parameterTypes[i];
-                                Annotation[] parameterAnnotation = parameterAnnotations[i];
-                                if (parameterAnnotation.length > 0 && parameterAnnotation[0].annotationType() == Var.class) {
-                                    Var var = (Var) parameterAnnotation[0];
-                                    if (null != var) {
-                                        String val = argsMap.get(var.value());
-                                        Supplier<Object> call = () -> {
-                                            if (String.class == type) {
-                                                return val;
-                                            } else if (Integer.class == type) {
-                                                return Integer.valueOf(val);
-                                            } else if (Date.class == type) {
-                                                return val.matches("\\d*") ? new Date(Long.parseLong(val)) : parseDate(val);
-                                            } else if (Long.class == type) {
-                                                return Long.parseLong(val);
-                                            } else if (Boolean.class == type) {
-                                                return boolPool.contains(val);
-                                            } else {
-                                                try {
-                                                    return JSON.parseObject(val, type);
-                                                } catch (Exception e) {
-                                                    return null;
-                                                }
-                                            }
-                                        };
-                                        if (null == val)
-                                            args[i] = null;
-                                        else
-                                            args[i] = call.get();
-                                    }
-                                } else if (parameterAnnotation.length > 0 && parameterAnnotation[0].annotationType() == Json.class) {
-                                    args[i] = JSON.parseObject(request.getRequestParams().getBodyJson(), type);
-                                }
-                            }
-
-                            Object apply = definition.getCall().apply(args);
-                            boolean isPlain = definition.type.ordinal() == RequestMapping.Type.PLAIN.ordinal();
-                            response.responseJson(apply == null ? null : isPlain ? apply.toString() : JSON.toJSONString(apply), isPlain);
+                            doHandeApi(request, response);
                         } else {
-                            response.sendStaticResource();
+                            doHandeStaticResource(response);
                         }
                         // Close the socket
                         cli.close();
@@ -160,6 +115,74 @@ public class XyDispacher extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void doHandeStaticResource(Response response) throws IOException {
+        response.sendStaticResource();
+    }
+
+    private void doHandeApi(Request request, Response response) {
+        MappingDefinition definition = controllerMapping.get(request.getUri());
+
+        // 需要获取方法的参数列表的类型
+        Class<?>[] parameterTypes = definition.getMappingMethod().getParameterTypes();
+        Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
+        Object[] args = new Object[parameterTypes.length];
+        Map<String, String> argsMap = request.getRequestParams().getParams();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> type = parameterTypes[i];
+            Annotation first = parameterAnnotations[i][0];
+
+            // 完成不同参数注解的参数值的注入
+            if (first.annotationType() == Json.class) {
+                args[i] = parseAnnoJson(request.getRequestParams().getBodyJson(), type);
+            } else if (first.annotationType() == Var.class) {
+                args[i] = parseAnnoVar(argsMap, type, (Var) first);
+            }
+        }
+
+        Object apply = definition.getCall().apply(args);
+        boolean isPlain = definition.type.ordinal() == RequestMapping.Type.PLAIN.ordinal();
+        response.responseJson(apply == null ? null : isPlain ? apply.toString() : JSON.toJSONString(apply), isPlain);
+    }
+
+    private <T> T parseAnnoJson(String json, Class<T> type) {
+        return JSON.parseObject(json, type);
+    }
+
+    private Object parseAnnoVar(Map<String, String> argsMap, Class<?> type, Var var) {
+        if (null != var) {
+            String val = argsMap.get(var.value());
+            Supplier<Object> call = strToObject(type, val);
+            if (null == val)
+                return null;
+            else
+                return call.get();
+        }
+        return null;
+    }
+
+    private Supplier<Object> strToObject(Class<?> type, String val) {
+        return () -> {
+            if (String.class == type) {
+                return val;
+            } else if (Integer.class == type) {
+                return Integer.valueOf(val);
+            } else if (Date.class == type) {
+                return val.matches("\\d*") ? new Date(Long.parseLong(val)) : parseDate(val);
+            } else if (Long.class == type) {
+                return Long.parseLong(val);
+            } else if (Boolean.class == type) {
+                return boolPool.contains(val);
+            } else {
+                try {
+                    return JSON.parseObject(val, type);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+        };
     }
 
     private void checkShutdown(Request request) {

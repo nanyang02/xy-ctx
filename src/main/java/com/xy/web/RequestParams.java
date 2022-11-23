@@ -21,13 +21,13 @@ public class RequestParams {
     }
 
     public enum ContentType {
-        JSON, PLAINT, FORMDATA
+        JSON, FORM_URLENCODED, FORMDATA
     }
 
     private String path, method, contentType, lineSplit, httpVer, bodyJson, varSplit;
     private Map<String, String> params = new HashMap<>();
     private Map<String, String> header = new HashMap<>();
-    private ContentType type = ContentType.PLAINT;
+    private ContentType type = ContentType.FORM_URLENCODED;
 
 }
 
