@@ -1,5 +1,8 @@
 package com.xy.web;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.URLConnection;
 import java.util.Date;
@@ -15,6 +18,8 @@ import java.util.Date;
 public class Response {
     private static final String INDEX_FILE = "index.html";
 
+    private static final Logger logger = LoggerFactory.getLogger(Response.class);
+
     private static final int BUFFER_SIZE = 1024;
     Request request;
     OutputStream output;
@@ -27,7 +32,7 @@ public class Response {
         this.request = request;
     }
 
-    public void sendStaticResource() throws IOException {
+    public void sendStaticResource() {
         byte[] bytes = new byte[BUFFER_SIZE];
         FileInputStream fis = null;
         try {
@@ -66,11 +71,15 @@ public class Response {
                 output.write(errorMessage.getBytes());
             }
         } catch (Exception e) {
-            // thrown if cannot instantiate a File object
-            System.out.println(e.toString());
+            logger.error(e.getMessage(), e);
         } finally {
-            if (fis != null)
-                fis.close();
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    logger.warn("文件读取流关闭失败，忽略", e);
+                }
+            }
         }
     }
 
@@ -79,7 +88,11 @@ public class Response {
                 new sun.security.action.GetPropertyAction("line.separator"));
     }
 
-    public void responseJson(String content, boolean plainText) {
+    public void responseJson(String content) {
+        responseData(content, false);
+    }
+
+    public void responseData(String content, boolean plainText) {
 
         StringBuilder respHeader = new StringBuilder();
         try {
@@ -99,7 +112,29 @@ public class Response {
             output.write(data);
             output.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    public void resonseError(String message) {
+        StringBuilder respHeader = new StringBuilder();
+        try {
+            byte[] data = message.getBytes("UTF-8");
+            respHeader
+                    .append("HTTP/1.1 500 Server Error").append(newLine())
+                    .append("Server: Java HTTP Server from SSaurel : 1.0").append(newLine())
+                    .append("Date: ").append(new Date()).append(newLine())
+                    .append("Content-type: ").append("text/html;UTF-8").append(newLine())
+                    .append("Content-length: ").append(data.length).append(newLine())
+                    .append("Cache-control: no-cache, no-store, max-age=0").append(newLine())
+                    // blank line between headers and content, very important !
+                    .append(newLine())
+            ;
+            output.write(respHeader.toString().getBytes("UTF-8"));
+            output.write(data);
+            output.flush();
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
     }
 

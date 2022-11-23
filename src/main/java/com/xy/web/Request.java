@@ -1,9 +1,17 @@
 package com.xy.web;
 
-import java.io.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public class Request {
+
+    private static final Logger logger = LoggerFactory.getLogger(Request.class);
 
     private InputStream input;
 
@@ -15,13 +23,13 @@ public class Request {
 
     public void parse() {
         // Read a set of characters from the socket
-        StringBuffer request = new StringBuffer(30*1024);
+        StringBuilder request = new StringBuilder(30 * 1024);
         int i;
-        byte[] buffer = new byte[30*1024];
+        byte[] buffer = new byte[30 * 1024];
         try {
             i = input.read(buffer);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.warn(e.getMessage(), e);
             i = -1;
         }
         for (int j = 0; j < i; j++) {
@@ -39,77 +47,103 @@ public class Request {
 
         String[] split = content.split("\n");
         String[] base = split[0].split(" ");
-        instace.setMethod(base[0].toUpperCase());
-        instace.setPath(base[1]);
-        instace.setHttpVer(base[2]);
+        instace.setMethod(base[0].toUpperCase().trim());
+        instace.setPath(base[1].trim());
+        instace.setHttpVer(base[2].trim());
 
         int i = 0;
         String line;
         // parse header ingo
-        {
+        try {
             // 解析第一段，主要是请求头部分
             do {
                 line = split[++i];
                 doParseHeader(instace, line);
             } while ((i + 1) < split.length && (split[i + 1].length() > 2 || !instace.getLineSplit().equals(split[i + 1] + "\n")));
+        } catch (Exception e) {
+            logger.error("请求头解析出错", e);
         }
 
         // parse params or body data
-        try {
-            if ("GET".equals(instace.getMethod())) {
-                // only parse data
+        if ("GET".equals(instace.getMethod())) {
+            // only parse data
+            try {
                 doParseGet(instace);
-            } else {
-                // 判定后续参数解析的是什么东西
-                if (instace.getType().ordinal() == RequestParams.ContentType.JSON.ordinal()) {
-                    instace.setBodyJson(concatLast(split, i));
-                } else if (instace.getType().ordinal() == RequestParams.ContentType.FORMDATA.ordinal()) {
-                    // 一段段的解析出Post的body的数据
-                    String overLine = "--" + instace.getVarSplit().trim() + "--";
-                    do {
-                        line = split[i].trim();
-
-                        // 匹配到参数段,参数段以--起步
-                        if (line.equals("--" + instace.getVarSplit())) {
-                            // 跳一行取出属性描述信息，一般就是文件和字段两种哦
-                            String[] pgs = split[++i].trim().split(";");
-                            String key = pgs[1].substring(pgs[1].indexOf("\"") + 1, pgs[1].length() - 1);
-
-                            // 取出下一行，要么是换行，要么就是文件
-                            line = split[++i].trim();
-                            boolean isFile = line.startsWith("Content-Type:");
-                            if (isFile) {
-                                // 暂时不解析文件
-                                String fileMime = line.substring(line.indexOf(":") + 2);
-                                i = i + 2; // 加一行，再后第2行才是数据
-                                line = split[i].trim();
-                                // 文件数据已经取出来了
-                            } else {
-                                line = split[++i].trim();
-                                // 跳过换行符，取出数据
-                                instace.getParams().put(key, contentUseUtf8(line));
-                            }
-                        }
-                    } while (!overLine.equals(split[++i].trim()));
-                } else if (instace.getType().ordinal() == RequestParams.ContentType.FORM_URLENCODED.ordinal()) {
-                    String str = concatLast(split, i);
-                    // username=22&dsds==32323
-                    if (str.length() > 0) {
-                        String[] kvs = str.split("&");
-                        for (String kv : kvs) {
-                            String[] ss = kv.split("=");
-                            String key = ss[0].trim();
-                            String value = ss.length > 1 ? ss[1].trim() : "";
-                            instace.getParams().put(key, value);
-                        }
-                    }
+            } catch (Exception e) {
+                logger.error("Get 请求解析出错", e);
+            }
+        } else {
+            // 判定后续参数解析的是什么东西
+            if (instace.getType().ordinal() == RequestParams.ContentType.JSON.ordinal()) {
+                try {
+                    parseJson(instace, split, i);
+                } catch (Exception e) {
+                    logger.error("Post 请求解析Json出错", e);
+                }
+            } else if (instace.getType().ordinal() == RequestParams.ContentType.FORMDATA.ordinal()) {
+                try {
+                    parseFormdata(instace, split, i);
+                } catch (Exception e) {
+                    logger.error("Post 请求解析Formdata出错", e);
+                }
+            } else if (instace.getType().ordinal() == RequestParams.ContentType.FORM_URLENCODED.ordinal()) {
+                try {
+                    parseUrlEncoded(instace, split, i);
+                } catch (Exception e) {
+                    logger.error("Post 请求解析Form-Urlencoded出错", e);
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         return instace;
+    }
+
+    private void parseJson(RequestParams instace, String[] split, int i) throws UnsupportedEncodingException {
+        instace.setBodyJson(concatLast(split, i));
+    }
+
+    private void parseUrlEncoded(RequestParams instace, String[] split, int i) throws UnsupportedEncodingException {
+        String str = concatLast(split, i);
+        // username=22&dsds==32323
+        if (str.length() > 0) {
+            String[] kvs = str.split("&");
+            for (String kv : kvs) {
+                String[] ss = kv.split("=");
+                String key = ss[0].trim();
+                String value = ss.length > 1 ? ss[1].trim() : "";
+                instace.getParams().put(key, value);
+            }
+        }
+    }
+
+    private void parseFormdata(RequestParams instace, String[] split, int i) throws UnsupportedEncodingException {
+        String line;// 一段段的解析出Post的body的数据
+        String overLine = "--" + instace.getVarSplit().trim() + "--";
+        do {
+            line = split[i].trim();
+
+            // 匹配到参数段,参数段以--起步
+            if (line.equals("--" + instace.getVarSplit())) {
+                // 跳一行取出属性描述信息，一般就是文件和字段两种哦
+                String[] pgs = split[++i].trim().split(";");
+                String key = pgs[1].substring(pgs[1].indexOf("\"") + 1, pgs[1].length() - 1);
+
+                // 取出下一行，要么是换行，要么就是文件
+                line = split[++i].trim();
+                boolean isFile = line.startsWith("Content-Type:");
+                if (isFile) {
+                    // 暂时不解析文件
+                    String fileMime = line.substring(line.indexOf(":") + 2);
+                    i = i + 2; // 加一行，再后第2行才是数据
+                    line = split[i].trim();
+                    // 文件数据已经取出来了
+                } else {
+                    line = split[++i].trim();
+                    // 跳过换行符，取出数据
+                    instace.getParams().put(key, contentUseUtf8(line));
+                }
+            }
+        } while (!overLine.equals(split[++i].trim()));
     }
 
     private String concatLast(String[] split, int i) throws UnsupportedEncodingException {
@@ -129,7 +163,7 @@ public class Request {
         for (int k = 0; k < chars.length; k++) {
             arr[k] = (byte) chars[k];
         }
-        line = new String(arr, "UTF-8");
+        line = new String(arr, StandardCharsets.UTF_8);
         return line;
     }
 

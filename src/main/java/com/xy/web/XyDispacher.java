@@ -2,10 +2,13 @@ package com.xy.web;
 
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.xy.web.annotation.Json;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
 import com.xy.web.annotation.Var;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +34,9 @@ import java.util.function.Supplier;
  * @since 1.8
  */
 public class XyDispacher extends Thread {
+
+    private static final Logger logger = LoggerFactory.getLogger(XyDispacher.class);
+
     private ExecutorService pool = new ThreadPoolExecutor(2, 50,
             60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>());
@@ -80,44 +86,57 @@ public class XyDispacher extends Thread {
      * @param port
      */
     public void runServer(int port) {
+
         try {
             serverSocket = new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
-            System.out.println("Http Server Run At http://localhost:" + port);
+        } catch (IOException e) {
+            throw new RuntimeException("无法绑定服务端口", e);
+        }
+        System.out.println("Http Server Run At http://localhost:" + port);
             while (!shutdown) {
-                final Socket cli = serverSocket.accept();
-                // 客户端，由线程池来完成新消息的处理
-                pool.submit(() -> {
-                    try {
-                        // create Request object and parse
-                        Request request = new Request(cli.getInputStream());
-                        request.parse();
+                try {
+                    final Socket cli = serverSocket.accept();
+                    // create Request object and parse
+                    final Request request = new Request(cli.getInputStream());
+                    // create Response object
+                    final Response response = new Response(cli.getOutputStream());
 
-                        // create Response object
-                        Response response = new Response(cli.getOutputStream());
-                        response.setRequest(request);
+                    // 客户端，由线程池来完成新消息的处理
+                    pool.submit(() -> {
+                        try {
+                            response.setRequest(request);
+                            try {
+                                request.parse();
+                            } catch (Exception e) {
+                                response.resonseError("500, Inner fault. can't parse request params.");
+                                return;
+                            }
 
-                        if (null != request.getUri() && controllerMapping.containsKey(request.getUri())) {
-                            doHandeApi(request, response);
-                        } else {
-                            doHandeStaticResource(response);
+                            if (null != request.getUri() && controllerMapping.containsKey(request.getUri())) {
+                                doHandeApi(request, response);
+                            } else {
+                                doHandeStaticResource(response);
+                            }
+
+                            // 检查关闭
+                            checkShutdown(request);
+                        } finally {
+                            // Close the socket
+                            try {
+                                cli.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
-                        // Close the socket
-                        cli.close();
-
-                        // 检查关闭
-                        checkShutdown(request);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+                    });
+                } catch (Exception e) {
+                    logger.error("无法建立客户端请求", e);
+                }
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
-    private void doHandeStaticResource(Response response) throws IOException {
+    private void doHandeStaticResource(Response response) {
         response.sendStaticResource();
     }
 
@@ -142,8 +161,26 @@ public class XyDispacher extends Thread {
         }
 
         Object apply = definition.getCall().apply(args);
-        boolean isPlain = definition.type.ordinal() == RequestMapping.Type.PLAIN.ordinal();
-        response.responseJson(apply == null ? null : isPlain ? apply.toString() : JSON.toJSONString(apply), isPlain);
+
+        if (apply == null)
+            response.responseData("null", true);
+        else {
+            boolean isJson = definition.type.ordinal() == RequestMapping.Type.JSON.ordinal();
+            String resultMessage;
+            if(isJson) {
+                try {
+                    resultMessage = apply instanceof String ? (String) apply : JSONObject.toJSONString(apply);
+                } catch (Exception e) {
+                    logger.error("json响应序列化出错", e);
+                    String message = e.getMessage();
+                    response.resonseError(message);
+                    return;
+                }
+            } else {
+                resultMessage = apply.toString();
+            }
+            response.responseJson(resultMessage);
+        }
     }
 
     private <T> T parseAnnoJson(String json, Class<T> type) {
@@ -178,7 +215,7 @@ public class XyDispacher extends Thread {
                 try {
                     return JSON.parseObject(val, type);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.warn("入参["+val+"]字符串转换对象处理出错", e);
                     return null;
                 }
             }
@@ -267,7 +304,7 @@ public class XyDispacher extends Thread {
                 try {
                     return method.invoke(controller, args);
                 } catch (IllegalAccessException | InvocationTargetException e) {
-                    e.printStackTrace();
+                    logger.error("Invoke Method["+method.getName()+"] fail.", e);
                     return null;
                 }
             });
