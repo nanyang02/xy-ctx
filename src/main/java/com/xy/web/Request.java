@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
 
 public class Request {
 
@@ -21,20 +23,54 @@ public class Request {
         this.input = input;
     }
 
+    private static boolean isNewPart(byte[] rnrn) {
+        int dat = 0x0000;
+        dat = (dat | rnrn[0] << 12);
+        dat = (dat | rnrn[1] << 8);
+        dat = (dat | rnrn[2] << 4);
+        return (dat | rnrn[3]) == 56026;
+    }
+
     public void parse() {
         // Read a set of characters from the socket
         StringBuilder request = new StringBuilder(30 * 1024);
-        int i;
-        byte[] buffer = new byte[30 * 1024];
+
+        // 此处的读取可以进行解析，很简单
+
+        // 1 取出4个字节，判断 \r\n\r\n 就是段结束，或者数据一行结束标志，一个段之前的就是头信息，后续的就是数据
+        byte[] rnrn = new byte[4];
+
+        // 2 循环读取出头（找到第一次出现rnrn的时候，就结束呀） TODO 通过移动4个字节的自动窗口来实现查找功能
+
+        // 3 循环读取，直到限定大小，报错
+
+        // 4 如果数据部分正常，则进行解出数据就好
+
+        // TODO 后续的处理，推荐头和数据分开处理就好。
+        // 目前，请求头没有涉及到中文，所以，先按照标准解析，最后做一下 URL解码操作，转换成中文支持
+
+
+        int i, less;
+        byte[] buffer = new byte[30*1024];
+
         try {
-            i = input.read(buffer);
+            while ((i = input.read(buffer)) != -1) {
+                // 读取从缓存中获取到的2k数据
+                for (int j = 0; j < i; j++) {
+
+                    // TODO 需要一套完成比对和判断出需要解析出来的字节是不是换段的逻辑，目的是获取头的数据段
+
+                    char c = (char) buffer[j];
+                    request.append(c);
+
+                }
+            }
         } catch (IOException e) {
             logger.warn(e.getMessage(), e);
             i = -1;
         }
-        for (int j = 0; j < i; j++) {
-            request.append((char) buffer[j]);
-        }
+
+
         requestParams = parseParams(request.toString());
     }
 
