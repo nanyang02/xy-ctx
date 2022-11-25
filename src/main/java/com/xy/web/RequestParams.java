@@ -3,7 +3,9 @@ package com.xy.web;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,7 +27,8 @@ public class RequestParams {
     }
 
     private String path, method, contentType, bodyJson, varSplit;
-    private Map<String, String> params = new HashMap<>();
+    private Map<String, Object> params = new HashMap<>();
+    private List<UploadFile> files = new ArrayList<>();
     private ContentType type = ContentType.FORM_URLENCODED;
 
 }

@@ -32,6 +32,17 @@ public class Request {
     private String pathname;
     private String originHeaderStr;
     private Long contentLength;
+    private RequestMethod method;
+
+    private static int maxDataLimit = 21 * 1024 * 1024;
+
+    private void setMaxDataLengthLimit(int len) {
+        maxDataLimit = len;
+    }
+
+    public RequestMethod getMethod() {
+        return method;
+    }
 
     public Long getContentLength() {
         return contentLength;
@@ -83,7 +94,7 @@ public class Request {
     public void parse() {
         // Read a set of characters from the socket
         // 初始容量设置为 10M 字符容量
-        StringBuilder request = new StringBuilder(10 * 1024 * 1024);
+        StringBuilder request = new StringBuilder(maxDataLimit);
 
         // 1 取出4个字节，判断 \r\n\r\n 就是段结束，或者数据一行结束标志，一个段之前的就是头信息，后续的就是数据
         byte[] rnrn = new byte[4];
@@ -119,7 +130,9 @@ public class Request {
                             request.append(c);
                         } else {
                             // 数据的时候走这里
-                            dataList.addLast(buffer[j]);
+                            if (dataList.size() > maxDataLimit) throw new RuntimeException(
+                                    "Too Long Request Data Length, max length is " + maxDataLimit + " byte");
+                            else dataList.addLast(buffer[j]);
                         }
                     }
                 }
@@ -161,7 +174,7 @@ public class Request {
             }
         } else if (instace.getType().ordinal() == RequestParams.ContentType.FORMDATA.ordinal()) {
             try {
-                parseFormdata(instace, content);
+                parseFormData(instace, content);
             } catch (Exception e) {
                 logger.error("Post 请求解析Formdata出错", e);
             }
@@ -193,50 +206,86 @@ public class Request {
         }
     }
 
-    private void parseFormdata(RequestParams instace, String content) {
-        String line;// 一段段的解析出Post的body的数据
-        String overLine = "--" + instace.getVarSplit().trim() + "--";
-        String[] split = content.split(NEW_LINE_DELI);
-        String some;
-        int i = 0;
-        do {
-            line = split[i].trim();
+    private void parseFormData(RequestParams instance, String content) {
+        String startMark = "--" + instance.getVarSplit();
+        String endMark = "--" + instance.getVarSplit() + "--";
+        int overOffset = content.lastIndexOf(endMark);
+        int markLen = startMark.length();
 
-            // 匹配到参数段,参数段以--起步
-            if (line.equals("--" + instace.getVarSplit())) {
-                // 跳一行取出属性描述信息，一般就是文件和字段两种哦
-                String[] pgs = split[++i].trim().split(";");
-                String key = pgs[1].substring(pgs[1].indexOf("\"") + 1, pgs[1].length() - 1);
+        // 找到第一个位置
+        int offset = content.indexOf(startMark);
+        if (offset > -1) {
+            do {
+                // remove head
+                content = content.substring(offset + markLen);
 
-                // 取出下一行，要么是换行，要么就是文件
-                line = split[++i].trim();
-                boolean isFile = line.startsWith("Content-Type:");
-                if (isFile) {
-                    // 暂时不解析文件
-                    String fileMime = line.substring(line.indexOf(":") + 2);
-                    i = i + 2; // 加一行，再后第2行才是数据
-                    line = split[i].trim();
-                    // 文件数据已经取出来了
-                } else {
-                    line = split[++i].trim();
-                    // 跳过换行符，取出数据
-                    instace.getParams().put(key, contentUseUtf8(line));
+                // next head
+                offset = content.indexOf(startMark);
+
+                // 解析一段内容
+                parseFormDataArg(instance, content.substring(0, offset));
+            } while (offset > 0 && offset != overOffset);
+        }
+    }
+
+    private void parseFormDataArg(RequestParams instance, String pice) {
+
+        // 先将换行和尾部的换行去掉
+        String trim = pice.trim();
+        int lineEnd = trim.indexOf('\n');
+        if (lineEnd > 0) {
+            // 读取出属性描述行
+            String line = trim.substring(0, lineEnd).trim();
+            trim = trim.substring(lineEnd + 1).trim();
+
+            // 跳一行取出属性描述信息，一般就是文件和字段两种哦
+            String[] arr = line.split(";");
+            // 属性名称
+            String name = null, fileName = null;
+            boolean isFile = false;
+            for (int i = 0; i < arr.length; i++) {
+                // param
+                if (arr[i].contains("=")) {
+                    String[] kv = arr[i].replaceAll("['\"]", "").split("=");
+                    String key = kv[0].trim();
+                    if ("name".equals(key)) {
+                        name = kv.length == 2 ? kv[1].trim() : "";
+                    } else if ("filename".equals(key)) {
+                        fileName = kv.length == 2 ? kv[1].trim() : "";
+                        isFile = true;
+                    }
                 }
             }
-            // 无需将所有的数据都拿来做比配
-            some = split[++i].length() > 255 ? split[i].substring(0, 255) : split[i];
-        } while (!overLine.equals(some.trim()));
+
+            // 如果是文件，需要读取mime和剩下的数据
+            if (isFile) {
+                // 新一行的结束位置
+                lineEnd = trim.indexOf("\n");
+                line = trim.substring(0, lineEnd);
+                trim = trim.substring(lineEnd + 1).trim();
+                String mime = line.substring(line.lastIndexOf(":") + 1).trim();
+
+                // 文件
+                UploadFile uploadFile = new UploadFile();
+                uploadFile.setMime(mime);
+                uploadFile.setName(fileName);
+
+                // 写数据的部分
+                uploadFile.write(trim);
+
+                // 文件列表中
+                instance.getFiles().add(uploadFile);
+                // 参数列表中
+                instance.getParams().put(name, uploadFile);
+            }
+            // 如果是属性，line里就是数据
+            else {
+                instance.getParams().put(name, WebUtil.contentUseUtf8(trim));
+            }
+        }
+
     }
 
-    private String contentUseUtf8(String line) {
-        char[] chars = line.toCharArray();
-        byte[] arr = new byte[chars.length];
-        for (int k = 0; k < chars.length; k++) {
-            arr[k] = (byte) chars[k];
-        }
-        line = new String(arr, StandardCharsets.UTF_8);
-        return line;
-    }
 
     private void doParseHeaderPart(RequestParams instace, String headerStr) {
 
@@ -245,8 +294,10 @@ public class Request {
         String[] base = headerArr[0].split(" ");
         instace.setMethod(base[0].toUpperCase().trim());
         instace.setPath(base[1].trim());
+        // 转换成枚举
+        method = RequestMethod.match(instace.getMethod());
         pathname = base[1].trim();
-        if(pathname.indexOf("?") > 0) {
+        if (pathname.indexOf("?") > 0) {
             pathname = pathname.substring(0, pathname.indexOf("?"));
         }
         protocolVersion = base[2].trim();
@@ -326,11 +377,14 @@ public class Request {
             } else {
                 if (!hasSession && next.equals(session)) {
                     hasSession = true;
+                    // 重设过期时间
+                    next.setExpired(30 * 60 * 1000);
                 }
             }
         }
         // 如果没有，则新建一个
         if (!hasSession) {
+            // 设置过期时间半个小时
             session.setExpired(30 * 60 * 1000);
             dispacher.getSessionSet().add(session);
             responseHeader.addHeader("JSESSIONID", session.getJSessionId());

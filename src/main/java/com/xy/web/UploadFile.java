@@ -1,19 +1,25 @@
 package com.xy.web;
 
+
+import java.nio.ByteBuffer;
+
 public class UploadFile {
 
-    private byte[] data;
+    private ByteBuffer buffer;
 
     private String mime;
 
     private String name;
 
-    public byte[] getData() {
-        return data;
+    public synchronized void writeBytes(byte[] bytes) {
+        if (null == buffer) {
+            buffer = ByteBuffer.allocate(bytes.length);
+        }
+        buffer.put(bytes);
     }
 
-    public void setData(byte[] data) {
-        this.data = data;
+    public void write(String content) {
+        writeBytes(WebUtil.getCharsBytes(content));
     }
 
     public String getMime() {
@@ -30,5 +36,9 @@ public class UploadFile {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public byte[] getBytes() {
+        return buffer.array();
     }
 }

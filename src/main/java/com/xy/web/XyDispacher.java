@@ -3,10 +3,7 @@ package com.xy.web;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.xy.web.annotation.Json;
-import com.xy.web.annotation.RequestMapping;
-import com.xy.web.annotation.RestMapping;
-import com.xy.web.annotation.Var;
+import com.xy.web.annotation.*;
 import com.xy.web.cookie.Cookie;
 import com.xy.web.header.RequestHeader;
 import com.xy.web.header.ResponseHeader;
@@ -177,7 +174,7 @@ public class XyDispacher extends Thread {
         Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
 
         Object[] args = new Object[parameterTypes.length];
-        Map<String, String> argsMap = request.getRequestParams().getParams();
+        Map<String, Object> argsMap = request.getRequestParams().getParams();
         for (int i = 0; i < parameterTypes.length; i++) {
             Class<?> type = parameterTypes[i];
             if (parameterAnnotations[i].length > 0) {
@@ -201,7 +198,7 @@ public class XyDispacher extends Thread {
         if (apply == null)
             response.responseData("null", true);
         else {
-            boolean isJson = definition.type.ordinal() == RequestMapping.Type.JSON.ordinal();
+            boolean isJson = definition.type.ordinal() == MsgType.JSON.ordinal();
             String resultMessage;
             if (isJson) {
                 try {
@@ -224,15 +221,15 @@ public class XyDispacher extends Thread {
         }
     }
 
-    private Object parseAnnoJson(Map<String, String> argsMap, String bodyJson, Json json, Class<?> type) {
+    private Object parseAnnoJson(Map<String, Object> argsMap, String bodyJson, Json json, Class<?> type) {
         String val = "";
         if (json.fromBody() && bodyJson != null && bodyJson.length() > 0) {
             val = bodyJson;
         } else {
             if (json.value().trim().length() > 0) {
-                String valJson = argsMap.get(json.value());
-                if (valJson != null && valJson.length() > 0) {
-                    val = valJson;
+                Object v = argsMap.get(json.value());
+                if (v instanceof String) {
+                    val = (String) v;
                 }
             }
         }
@@ -247,10 +244,10 @@ public class XyDispacher extends Thread {
         return null;
     }
 
-    private Object parseAnnoVar(Map<String, String> argsMap, Class<?> type, Var var) {
+    private Object parseAnnoVar(Map<String, Object> argsMap, Class<?> type, Var var) {
         if (null != var) {
-            String val = argsMap.get(var.value());
-            Supplier<Object> call = strToObject(type, val);
+            Object val = argsMap.get(var.value());
+            Supplier<Object> call = toObject(type, val);
             if (null == val) {
                 if (var.defVal().length() > 0) return var.defVal();
                 else return null;
@@ -259,23 +256,34 @@ public class XyDispacher extends Thread {
         return null;
     }
 
-    private Supplier<Object> strToObject(Class<?> type, String val) {
+    private Supplier<Object> toObject(Class<?> type, Object o) {
         return () -> {
-            if (String.class == type) {
-                return val;
-            } else if (Integer.class == type) {
-                return Integer.valueOf(val);
-            } else if (Date.class == type) {
-                return val.matches("\\d*") ? new Date(Long.parseLong(val)) : parseDate(val);
-            } else if (Long.class == type) {
-                return Long.parseLong(val);
-            } else if (Boolean.class == type) {
-                return boolPool.contains(val);
+            if (o.getClass() == type) {
+                return o;
             } else {
-                try {
-                    return JSON.parseObject(val, type);
-                } catch (Exception e) {
-                    logger.warn("入参[" + val + "]字符串转换对象处理出错", e);
+
+                if (o instanceof String) {
+                    String val = (String) o;
+
+                    if (String.class == type) {
+                        return val;
+                    } else if (Integer.class == type) {
+                        return Integer.valueOf(val);
+                    } else if (Date.class == type) {
+                        return val.matches("\\d*") ? new Date(Long.parseLong(val)) : parseDate(val);
+                    } else if (Long.class == type) {
+                        return Long.parseLong(val);
+                    } else if (Boolean.class == type) {
+                        return boolPool.contains(val);
+                    } else {
+                        try {
+                            return JSON.parseObject(val, type);
+                        } catch (Exception e) {
+                            logger.warn("入参[" + val + "]字符串转换对象处理出错", e);
+                            return null;
+                        }
+                    }
+                } else {
                     return null;
                 }
             }
@@ -291,17 +299,17 @@ public class XyDispacher extends Thread {
     }
 
     static class MappingDefinition {
-        private RequestMapping.Type type;
+        private MsgType type;
         private String mapping;
         private Class<?> controllerClass;
         private Method mappingMethod;
         private Function<Object[], Object> call;
 
-        public RequestMapping.Type getType() {
+        public MsgType getType() {
             return type;
         }
 
-        public void setType(RequestMapping.Type type) {
+        public void setType(MsgType type) {
             this.type = type;
         }
 
@@ -342,10 +350,13 @@ public class XyDispacher extends Thread {
         Method[] methods = controller.getClass().getMethods();
         for (Method method : methods) {
 
-            RequestMapping anno1 = method.getAnnotation(RequestMapping.class);
-            RestMapping anno2 = method.getAnnotation(RestMapping.class);
+            Mapping mapping = method.getAnnotation(Mapping.class);
+            RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
+            RestMapping restMapping = method.getAnnotation(RestMapping.class);
+            ToJson toJson = method.getAnnotation(ToJson.class);
 
-            if (null == anno1 && null == anno2) continue;
+
+            if (null == requestMapping && null == restMapping && null == mapping) continue;
 
             MappingDefinition definition = new MappingDefinition();
             definition.setCall(args -> {
@@ -359,15 +370,24 @@ public class XyDispacher extends Thread {
             definition.setMappingMethod(method);
             definition.setControllerClass(controller.getClass());
 
-            if (anno1 != null) {
-                definition.setMapping(anno1.value());
-                definition.setType(anno1.type());
+            if (mapping != null) {
+                definition.setMapping(mapping.value());
+                definition.setType(mapping.type());
 
             }
 
-            if (anno2 != null) {
-                definition.setMapping(anno2.value());
-                definition.setType(RequestMapping.Type.JSON);
+            if (requestMapping != null) {
+                definition.setMapping(requestMapping.value());
+                definition.setType(requestMapping.type());
+            }
+
+            if (restMapping != null) {
+                definition.setMapping(restMapping.value());
+                definition.setType(MsgType.JSON);
+            }
+
+            if (toJson != null) {
+                definition.setType(MsgType.JSON);
             }
 
             controllerMapping.put(definition.getMapping(), definition);

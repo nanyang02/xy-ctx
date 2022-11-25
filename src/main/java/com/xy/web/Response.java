@@ -143,7 +143,7 @@ public class Response {
                 sb.append("HTTP/1.1 302 Moved Permanently").append(newLine());
                 break;
             case S302:
-                sb.append("HTTP/1.1 302 Moved Temporarily").append(newLine());
+                sb.append("HTTP/1.1 302 Found").append(newLine());
                 break;
             case S500:
                 sb.append("HTTP/1.1 500 HTTP-Internal Server Error").append(newLine());
@@ -153,7 +153,7 @@ public class Response {
         return sb
                 .append("Server: Java HTTP Server 1.0").append(newLine())
                 .append("Date: ").append(new Date().toString()).append(newLine())
-                .append("Cache-control: no-cache, no-store, max-age=0").append(new Date().toString()).append(newLine())
+//                .append("Cache-control: no-cache, no-store, max-age=0").append(new Date().toString()).append(newLine())
                 ;
     }
 

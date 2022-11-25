@@ -1,11 +1,10 @@
 package com.xy.controller;
 
 import com.xy.stereotype.Controller;
-import com.xy.web.annotation.Json;
-import com.xy.web.annotation.RequestMapping;
-import com.xy.web.annotation.RestMapping;
-import com.xy.web.annotation.Var;
+import com.xy.web.UploadFile;
+import com.xy.web.annotation.*;
 
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,5 +53,25 @@ public class MyTestController {
     @RestMapping("/api/getIdName")
     public IdNameBo getIdName(@Var("id") String id, @Var("name") String name) {
         return new IdNameBo().setId(id).setName(name);
+    }
+
+    @Mapping("/uploadImagAndShowHtml")
+    public String imageToHtml(@Var("image") UploadFile uploadFile, @Var("alias") String alias) {
+        String image = "";
+        String fileName = "";
+        String mime = "";
+        if (null != uploadFile) {
+            image = Base64.getMimeEncoder().encodeToString(uploadFile.getBytes());
+            System.out.println(image);
+            fileName = uploadFile.getName();
+            mime = uploadFile.getMime();
+        }
+        return "<html>" +
+                "<body> <p> alias : " + alias + "</p>" +
+                "<label>" + fileName + "</label>" +
+                "<img src=\"data:" + mime + ";base64," + image + "\">" +
+                "</body>" +
+                "</html>";
+
     }
 }
