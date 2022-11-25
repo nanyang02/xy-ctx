@@ -6,5 +6,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Json {
-//    String value() default ""
+    String value() default "";
+    boolean fromBody() default true;
 }

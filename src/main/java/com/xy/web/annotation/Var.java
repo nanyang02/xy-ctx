@@ -6,5 +6,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Var {
-    String value() default "";
+    String value();
+    String defVal() default "";
 }

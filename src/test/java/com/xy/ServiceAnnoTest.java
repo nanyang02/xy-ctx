@@ -31,7 +31,7 @@ public class ServiceAnnoTest {
 
 //        try (MyBatisAppContext ctx = new MyBatisAppContext(
 //                ServiceAnnoTest.class,
-//                new String[]{"jdbc", "mybatis.xml"}
+//                new String[]{"jdbc", "mybatis_sample.xml"}
 //        )) {
 //
 //            // 完成测试类的属性注入

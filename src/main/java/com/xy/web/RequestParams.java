@@ -24,9 +24,8 @@ public class RequestParams {
         JSON, FORM_URLENCODED, FORMDATA
     }
 
-    private String path, method, contentType, lineSplit, httpVer, bodyJson, varSplit;
+    private String path, method, contentType, bodyJson, varSplit;
     private Map<String, String> params = new HashMap<>();
-    private Map<String, String> header = new HashMap<>();
     private ContentType type = ContentType.FORM_URLENCODED;
 
 }

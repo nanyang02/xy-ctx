@@ -28,7 +28,7 @@ public class MyAppTest {
 //
 //    @Before
 //    public void before() {
-//        ctx.registDs(new String[]{"jdbc", "mybatis.xml"});
+//        ctx.registDs(new String[]{"jdbc", "mybatis_sample.xml"});
 //    }
 //
 //    @After

@@ -5,7 +5,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /*
   HTTP Response = Status-Line
@@ -24,6 +27,11 @@ public class Response {
     Request request;
     OutputStream output;
 
+    enum HttpStatus {
+        S200, S301, S302, S500
+    }
+
+
     public Response(OutputStream output) {
         this.output = output;
     }
@@ -37,10 +45,10 @@ public class Response {
         FileInputStream fis = null;
         try {
             File file = null;
-            if (request.getUri().equals("/")) {
+            if (request.getPathname().equals("/")) {
                 file = new File(XyDispacher.WEB_ROOT, "/" + INDEX_FILE);
             } else {
-                file = new File(XyDispacher.WEB_ROOT, request.getUri());
+                file = new File(XyDispacher.WEB_ROOT, request.getPathname());
             }
 
             // (file.getName());
@@ -84,8 +92,9 @@ public class Response {
     }
 
     private String newLine() {
-        return java.security.AccessController.doPrivileged(
-                new sun.security.action.GetPropertyAction("line.separator"));
+//        return java.security.AccessController.doPrivileged(
+//                new sun.security.action.GetPropertyAction("line.separator"));
+        return "\r\n";
     }
 
     public void responseJson(String content) {
@@ -93,56 +102,90 @@ public class Response {
     }
 
     public void responseData(String content, boolean plainText) {
-
-        StringBuilder respHeader = new StringBuilder();
         try {
-            byte[] data = content.getBytes("UTF-8");
-            String contentType = plainText ? "text/html;UTF-8" : "application/json;charset=UTF-8";
-            respHeader
-                    .append("HTTP/1.1 200 OK").append(newLine())
-                    .append("Server: Java HTTP Server from SSaurel : 1.0").append(newLine())
-                    .append("Date: ").append(new Date()).append(newLine())
+            byte[] data = content.getBytes(StandardCharsets.UTF_8);
+            String contentType = plainText ? "text/plain;charset=UTF-8" : "application/json;charset=UTF-8";
+            StringBuilder sb = defaultHeader(HttpStatus.S200)
                     .append("Content-type: ").append(contentType).append(newLine())
-                    .append("Content-length: ").append(data.length).append(newLine())
-                    .append("Cache-control: no-cache, no-store, max-age=0").append(newLine())
-                    // blank line between headers and content, very important !
-                    .append(newLine())
-            ;
-            output.write(respHeader.toString().getBytes("UTF-8"));
-            output.write(data);
-            output.flush();
+                    .append("Content-length: ").append(data.length).append(newLine());
+            dyncAppendAndFlush(data, sb);
+
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }
     }
 
-    public void resonseError(String message) {
-        StringBuilder respHeader = new StringBuilder();
+    private void dyncAppendAndFlush(byte[] data, StringBuilder sb) throws IOException {
+        // 如果有额外的cookie
+        if (!request.getCookie().isEmpty()) {
+            sb.append(request.getCookie().getSetCookieHeader()).append(newLine());
+        }
+
+        // 如果有额外的响应头
+        if (!request.getResponseHeader().isEmpty()) {
+            sb.append(request.getResponseHeader().getHeaderStr()).append(newLine());
+        }
+
+        // blank line between headers and content, very important !
+        sb.append(newLine());
+        output.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+        output.write(data);
+        output.flush();
+    }
+
+    private StringBuilder defaultHeader(HttpStatus status) {
+        StringBuilder sb = new StringBuilder();
+        switch (status) {
+            case S200:
+                sb.append("HTTP/1.1 200 OK").append(newLine());
+                break;
+            case S301:
+                sb.append("HTTP/1.1 302 Moved Permanently").append(newLine());
+                break;
+            case S302:
+                sb.append("HTTP/1.1 302 Moved Temporarily").append(newLine());
+                break;
+            case S500:
+                sb.append("HTTP/1.1 500 HTTP-Internal Server Error").append(newLine());
+                break;
+        }
+
+        return sb
+                .append("Server: Java HTTP Server 1.0").append(newLine())
+                .append("Date: ").append(new Date().toString()).append(newLine())
+                .append("Cache-control: no-cache, no-store, max-age=0").append(new Date().toString()).append(newLine())
+                ;
+    }
+
+    public void response302(String path) {
         try {
-            byte[] data = message.getBytes("UTF-8");
-            respHeader
-                    .append("HTTP/1.1 500 Server Error").append(newLine())
-                    .append("Server: Java HTTP Server from SSaurel : 1.0").append(newLine())
-                    .append("Date: ").append(new Date()).append(newLine())
+            byte[] data = "ok".getBytes();
+            // 301 Moved Permanently 永久重定向 --> 搜索引擎会自动更新链接地址
+            // 302 Moved Temporarily 临时重定向 --> 搜索引擎不会自动更新链接地址
+            StringBuilder sb = defaultHeader(HttpStatus.S302)
+                    .append("Content-type: ").append("text/plain;UTF-8").append(newLine())
+                    .append("Content-length: ").append(data.length).append(newLine())
+                    .append("Location: ").append(path).append(newLine());
+
+            dyncAppendAndFlush(data, sb);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    public void resonse500(String message) {
+        try {
+            byte[] data = message.getBytes(StandardCharsets.UTF_8);
+            StringBuilder sb = defaultHeader(HttpStatus.S500)
                     .append("Content-type: ").append("text/html;UTF-8").append(newLine())
                     .append("Content-length: ").append(data.length).append(newLine())
-                    .append("Cache-control: no-cache, no-store, max-age=0").append(newLine())
                     // blank line between headers and content, very important !
-                    .append(newLine())
-            ;
-            output.write(respHeader.toString().getBytes("UTF-8"));
+                    .append(newLine());
+            output.write(sb.toString().getBytes(StandardCharsets.UTF_8));
             output.write(data);
             output.flush();
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }
-    }
-
-    // return supported MIME Types
-    private String getContentType(String fileRequested) {
-        if (fileRequested.endsWith(".htm") || fileRequested.endsWith(".html"))
-            return "text/html";
-        else
-            return "text/plain";
     }
 }

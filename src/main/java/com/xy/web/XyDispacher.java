@@ -7,6 +7,10 @@ import com.xy.web.annotation.Json;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
 import com.xy.web.annotation.Var;
+import com.xy.web.cookie.Cookie;
+import com.xy.web.header.RequestHeader;
+import com.xy.web.header.ResponseHeader;
+import com.xy.web.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,10 +23,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -59,12 +60,18 @@ public class XyDispacher extends Thread {
     public static String WEB_ROOT = System.getProperty("user.dir") + File.separator + "webroot";
 
     // shutdown command
-    private static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
+    public static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
 
     // the shutdown command received
-    private static boolean shutdown = false;
+    public static boolean shutdown = false;
 
     private static final List<String> boolPool = Arrays.asList("true", "1", "on");
+
+    private final Set<Session> sessionSet = new HashSet<>();
+
+    public Set<Session> getSessionSet() {
+        return sessionSet;
+    }
 
     private static Date parseDate(String time) {
         try {
@@ -86,54 +93,75 @@ public class XyDispacher extends Thread {
      * @param port
      */
     public void runServer(int port) {
-
         try {
             serverSocket = new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
         } catch (IOException e) {
             throw new RuntimeException("无法绑定服务端口", e);
         }
-        System.out.println("Http Server Run At http://localhost:" + port);
-            while (!shutdown) {
+        logger.info("Http Server Run At http://localhost:" + port);
+        while (!shutdown) {
+            try {
+                submitTask(serverSocket.accept());
+            } catch (Exception e) {
+                logger.error("无法建立客户端请求", e);
+            }
+        }
+
+        try {
+            logger.info("正在关闭线程池和服务线程");
+            if (!pool.isShutdown()) pool.shutdown();
+            if (!serverSocket.isClosed()) serverSocket.close();
+        } catch (IOException ignore) {
+            logger.info("服务关闭出现异常");
+        }
+
+        logger.info("-- The End --");
+    }
+
+    private void submitTask(Socket cli) {
+        final XyDispacher dispacher = this;
+
+        // 客户端，由线程池来完成新消息的处理
+        pool.submit(() -> {
+            Request request = new Request(dispacher);
+            try {
+                // create Request object and parse
+                request.setInput(cli.getInputStream());
+                // create Response object
+                final Response response = new Response(cli.getOutputStream());
+
+                response.setRequest(request);
                 try {
-                    final Socket cli = serverSocket.accept();
-                    // create Request object and parse
-                    final Request request = new Request(cli.getInputStream());
-                    // create Response object
-                    final Response response = new Response(cli.getOutputStream());
-
-                    // 客户端，由线程池来完成新消息的处理
-                    pool.submit(() -> {
-                        try {
-                            response.setRequest(request);
-                            try {
-                                request.parse();
-                            } catch (Exception e) {
-                                response.resonseError("500, Inner fault. can't parse request params.");
-                                return;
-                            }
-
-                            if (null != request.getUri() && controllerMapping.containsKey(request.getUri())) {
-                                doHandeApi(request, response);
-                            } else {
-                                doHandeStaticResource(response);
-                            }
-
-                            // 检查关闭
-                            checkShutdown(request);
-                        } finally {
-                            // Close the socket
-                            try {
-                                cli.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
+                    request.parse();
                 } catch (Exception e) {
-                    logger.error("无法建立客户端请求", e);
+                    response.resonse500("500, Inner fault. can't parse request params.");
+                    return;
+                }
+
+                if (shutdown) {
+                    if (!cli.isClosed()) cli.close();
+                    serverSocket.close();
+                    return;
+                }
+
+                if (null != request.getPathname() && controllerMapping.containsKey(request.getPathname())) {
+                    doHandeApi(request, response);
+                } else {
+                    doHandeStaticResource(response);
+                }
+            } catch (Exception e) {
+                logger.error("无法建立客户端请求", e);
+            } finally {
+                // Close the socket
+                try {
+                    if (null != cli && !cli.isClosed()) {
+                        cli.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-
+        });
     }
 
     private void doHandeStaticResource(Response response) {
@@ -141,22 +169,30 @@ public class XyDispacher extends Thread {
     }
 
     private void doHandeApi(Request request, Response response) {
-        MappingDefinition definition = controllerMapping.get(request.getUri());
+        MappingDefinition definition = controllerMapping.get(request.getPathname());
 
         // 需要获取方法的参数列表的类型
         Class<?>[] parameterTypes = definition.getMappingMethod().getParameterTypes();
+        // 二维数组结构
         Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
+
         Object[] args = new Object[parameterTypes.length];
         Map<String, String> argsMap = request.getRequestParams().getParams();
         for (int i = 0; i < parameterTypes.length; i++) {
             Class<?> type = parameterTypes[i];
-            Annotation first = parameterAnnotations[i][0];
-
-            // 完成不同参数注解的参数值的注入
-            if (first.annotationType() == Json.class) {
-                args[i] = parseAnnoJson(request.getRequestParams().getBodyJson(), type);
-            } else if (first.annotationType() == Var.class) {
-                args[i] = parseAnnoVar(argsMap, type, (Var) first);
+            if (parameterAnnotations[i].length > 0) {
+                Annotation first = parameterAnnotations[i][0];
+                if (first.annotationType() == Json.class) {
+                    args[i] = parseAnnoJson(argsMap, request.getRequestParams().getBodyJson(), (Json) first, type);
+                } else if (first.annotationType() == Var.class) {
+                    args[i] = parseAnnoVar(argsMap, type, (Var) first);
+                }
+            } else if (type == Cookie.class) {
+                args[i] = request.getCookie();
+            } else if (type == RequestHeader.class) {
+                args[i] = request.getRequestHeader();
+            } else if (type == ResponseHeader.class) {
+                args[i] = request.getResponseHeader();
             }
         }
 
@@ -167,34 +203,58 @@ public class XyDispacher extends Thread {
         else {
             boolean isJson = definition.type.ordinal() == RequestMapping.Type.JSON.ordinal();
             String resultMessage;
-            if(isJson) {
+            if (isJson) {
                 try {
                     resultMessage = apply instanceof String ? (String) apply : JSONObject.toJSONString(apply);
                 } catch (Exception e) {
                     logger.error("json响应序列化出错", e);
                     String message = e.getMessage();
-                    response.resonseError(message);
+                    response.resonse500(message);
                     return;
                 }
             } else {
-                resultMessage = apply.toString();
+                resultMessage = apply.toString().trim();
+                if (resultMessage.startsWith("redirect:")) {
+                    // 重定向
+                    response.response302(resultMessage.substring(9));
+                    return;
+                }
             }
-            response.responseJson(resultMessage);
+            response.responseData(resultMessage, !isJson);
         }
     }
 
-    private <T> T parseAnnoJson(String json, Class<T> type) {
-        return JSON.parseObject(json, type);
+    private Object parseAnnoJson(Map<String, String> argsMap, String bodyJson, Json json, Class<?> type) {
+        String val = "";
+        if (json.fromBody() && bodyJson != null && bodyJson.length() > 0) {
+            val = bodyJson;
+        } else {
+            if (json.value().trim().length() > 0) {
+                String valJson = argsMap.get(json.value());
+                if (valJson != null && valJson.length() > 0) {
+                    val = valJson;
+                }
+            }
+        }
+        if (!"".equals(val)) {
+            try {
+                return JSON.parseObject(val, type);
+            } catch (Exception e) {
+                logger.warn("Json [{}] Parse Error: {}", type.getName(), e.getMessage());
+            }
+        }
+
+        return null;
     }
 
     private Object parseAnnoVar(Map<String, String> argsMap, Class<?> type, Var var) {
         if (null != var) {
             String val = argsMap.get(var.value());
             Supplier<Object> call = strToObject(type, val);
-            if (null == val)
-                return null;
-            else
-                return call.get();
+            if (null == val) {
+                if (var.defVal().length() > 0) return var.defVal();
+                else return null;
+            } else return call.get();
         }
         return null;
     }
@@ -215,23 +275,11 @@ public class XyDispacher extends Thread {
                 try {
                     return JSON.parseObject(val, type);
                 } catch (Exception e) {
-                    logger.warn("入参["+val+"]字符串转换对象处理出错", e);
+                    logger.warn("入参[" + val + "]字符串转换对象处理出错", e);
                     return null;
                 }
             }
         };
-    }
-
-    private void checkShutdown(Request request) {
-        // check if the previous URI is a shutdown command
-        shutdown = request.getUri().equals(SHUTDOWN_COMMAND);
-
-        if (shutdown) {
-            try {
-                serverSocket.close();
-            } catch (IOException ignore) {
-            }
-        }
     }
 
     /**
@@ -290,7 +338,7 @@ public class XyDispacher extends Thread {
         }
     }
 
-    public <T> void addMapping(Object controller) {
+    public void addMapping(Object controller) {
         Method[] methods = controller.getClass().getMethods();
         for (Method method : methods) {
 
@@ -304,7 +352,7 @@ public class XyDispacher extends Thread {
                 try {
                     return method.invoke(controller, args);
                 } catch (IllegalAccessException | InvocationTargetException e) {
-                    logger.error("Invoke Method["+method.getName()+"] fail.", e);
+                    logger.error("Invoke Method[" + method.getName() + "] fail.", e);
                     return null;
                 }
             });
