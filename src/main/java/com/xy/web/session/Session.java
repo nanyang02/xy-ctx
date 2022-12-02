@@ -14,7 +14,8 @@ public class Session {
 
     // JSESIIONID
     private String jSessionId;
-    private long expiredMillis = 0;
+    // 默认设置为3分钟就失效了
+    private long expiredMillis = 2 * 60 * 1000;
 
     private Session(String sessionId) {
         if (null != sessionId && !"".equals(sessionId.trim())) {

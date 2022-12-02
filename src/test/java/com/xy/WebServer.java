@@ -19,7 +19,8 @@ public class WebServer {
     public void x() {
         ctx = new MyBatisAppContext();
         ctx.scan("com.xy.controller");
-        ctx.useWeb(8081);
+        ctx.useWeb(8080);
+        ctx.enableDebugLog(true);
         ctx.webDispatcherJoin();
     }
 }

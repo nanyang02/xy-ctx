@@ -4,11 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /*
   HTTP Response = Status-Line
@@ -40,6 +37,14 @@ public class Response {
         this.request = request;
     }
 
+    public OutputStream getOutput() {
+        return output;
+    }
+
+    public void setOutput(OutputStream output) {
+        this.output = output;
+    }
+
     public void sendStaticResource() {
         byte[] bytes = new byte[BUFFER_SIZE];
         FileInputStream fis = null;
@@ -57,11 +62,16 @@ public class Response {
                 int fileLength = (int) file.length();
                 PrintWriter out = new PrintWriter(this.output);
 
+                // search file:: java.home/lib/content-types.properties;
+                // but, i search this at jre.home/lib/content-types.properties;
+                // so, normal, i can't use this, or else define jre as java home.
+                // String contentType = URLConnection.getFileNameMap().getContentTypeFor(file.getName());
+
                 // send HTTP Headers
                 out.println("HTTP/1.1 200 OK");
                 out.println("Server: Java HTTP Server from SSaurel : 1.0");
                 out.println("Date: " + new Date());
-                out.println("Content-type: " + URLConnection.getFileNameMap().getContentTypeFor(file.getName()));
+                out.println("Content-type: " + MimeType.getMimeWithSuffix(file.getName().substring(file.getName().lastIndexOf("."))));
                 out.println("Content-length: " + fileLength);
                 out.println(); // blank line between headers and content, very important !
                 out.flush(); // flush character output stream buffer
@@ -133,7 +143,7 @@ public class Response {
         output.flush();
     }
 
-    private StringBuilder defaultHeader(HttpStatus status) {
+    public StringBuilder defaultHeader(HttpStatus status) {
         StringBuilder sb = new StringBuilder();
         switch (status) {
             case S200:
@@ -173,7 +183,7 @@ public class Response {
         }
     }
 
-    public void resonse500(String message) {
+    public void response500(String message) {
         try {
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
             StringBuilder sb = defaultHeader(HttpStatus.S500)
@@ -184,6 +194,31 @@ public class Response {
             output.write(sb.toString().getBytes(StandardCharsets.UTF_8));
             output.write(data);
             output.flush();
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    public void responseHtml(String html) {
+        try {
+            byte[] data = html.getBytes();
+            StringBuilder sb = defaultHeader(HttpStatus.S200)
+                    .append("Content-type: ").append("text/html;UTF-8").append(newLine())
+                    .append("Content-length: ").append(data.length).append(newLine());
+
+            dyncAppendAndFlush(data, sb);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    public void responseBase(String content) {
+        try {
+            byte[] data = content.getBytes("UTF-8");
+            StringBuilder sb = defaultHeader(HttpStatus.S200)
+                    .append("Content-length: ").append(data.length).append(newLine());
+
+            dyncAppendAndFlush(data, sb);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }

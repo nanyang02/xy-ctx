@@ -20,6 +20,8 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     private final XyDispacher dispacher = new XyDispacher();
 
+    private static boolean useDebug = false;
+
     public void webDispatcherJoin() {
         try {
             dispacher.join();
@@ -134,5 +136,13 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     public void useWeb(Class<?> c) {
         useWeb(c, null);
+    }
+
+    public static boolean enabledDebug() {
+        return useDebug;
+    }
+
+    public void enableDebugLog(boolean b) {
+        useDebug = b;
     }
 }

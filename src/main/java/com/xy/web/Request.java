@@ -1,5 +1,6 @@
 package com.xy.web;
 
+import com.xy.factory.ApplicationDefaultContext;
 import com.xy.web.cookie.Cookie;
 import com.xy.web.header.RequestHeader;
 import com.xy.web.header.ResponseHeader;
@@ -12,10 +13,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 
 public class Request {
 
@@ -103,16 +101,31 @@ public class Request {
 
         // 假设一般请求头不会超过100k
         byte[] buffer = new byte[100 * 1024 + 1];
-        int read = -1;
+        byte[] headBuffer = null;
+        int read, searchHeadercount = 0;
         boolean hadParseHeader = false;
         try {
             // 注意不能循环read，因为客户端不会自动关闭，http还需要使用，所以会出现挂起，
             // 此时需要使用请求头来实现继续读取数据，读取到一定长度就结束
-            do {
+            for (; ; ) {
                 read = input.read(buffer);
+
                 if (read > -1) {
-                    // 读取从缓存中获取到的2k数据
-                    for (int j = 0; j < read; j++) {
+                    int p = 0;
+                    // 需要将buffer进行拼接，以满足解析请求头的部分，如果上一次有数据，则本次需要拼接
+                    if (null != headBuffer) {
+                        // 将本次的数据备份一下
+                        byte[] bytes = Arrays.copyOf(buffer, read);
+                        // 将headBuffer填充到buffer里面
+                        System.arraycopy(headBuffer, 0, buffer, 0, headBuffer.length);
+                        // 将备份的数据添加再buffer后面
+                        System.arraycopy(bytes, 0, buffer, headBuffer.length, read);
+
+                        // 设置起始检查点位置
+                        p = headBuffer.length - 1;
+                        read = headBuffer.length + read;
+                    }
+                    for (int j = p; j < read; j++) {
                         if (!hadParseHeader) {
                             rnrn[0] = buffer[j];
                             rnrn[1] = buffer[j + 1];
@@ -121,13 +134,23 @@ public class Request {
 
                             if (isNewPart(rnrn)) {
                                 hadParseHeader = true;
+                                for (int i = 0; i < Arrays.copyOf(buffer, j).length; i++) {
+                                    char c = (char) buffer[i];
+                                    request.append(c);
+                                }
                                 doParseHeaderPart(requestParams, request.toString());
                                 request.delete(0, j);
                                 // 跳过header头最后一个的 \n\r\n, 注意j本身就是 \r
                                 j = j + 3;
+
+                                if (ApplicationDefaultContext.enabledDebug()) {
+                                    logger.debug("已经对请求进行了请求头的解析工作");
+                                    logger.debug("Method: {}, DataType: {}, Path: {}"
+                                            , requestParams.getMethod()
+                                            , requestParams.getType().name()
+                                            , pathname);
+                                }
                             }
-                            char c = (char) buffer[j];
-                            request.append(c);
                         } else {
                             // 数据的时候走这里
                             if (dataList.size() > maxDataLimit) throw new RuntimeException(
@@ -135,8 +158,68 @@ public class Request {
                             else dataList.addLast(buffer[j]);
                         }
                     }
+
+                    // 如果第一段没有获取到完整的请求头，需要将前一次的数据回收备份
+                    if (!hadParseHeader) {
+                        headBuffer = Arrays.copyOf(buffer, read);
+                    }
                 }
-            } while (read == buffer.length);// 这里存在一个风险就是刚刚好满字节，但是出现的可能性及其低，
+
+                // 没找到头，继续
+                if (!hadParseHeader) {
+                    if (searchHeadercount > 5) {
+                        throw new RuntimeException("解析请求头失败，拒绝响应");
+                    }
+                    searchHeadercount++;
+
+                    continue;
+                }
+                // 没有数据，跳过, 有数据，但是数据还不够长度，则继续
+                if (null != contentLength && contentLength > 0) {
+                    // content length
+                    int length = dataList.size();
+
+                    // 如果数据的内容比请求头中定义的长度小则忽略
+                    if (length < contentLength) {
+                        continue;
+                    }
+                }
+
+                // 跳出循环，结束请求头和数据的收集工作
+                if (ApplicationDefaultContext.enabledDebug())
+                    logger.debug("已经解析完毕：path：{}, contentLen:{}, dataSize:{}", pathname, contentLength, dataList.size());
+                break;
+            }
+
+//            do {
+//                read = input.read(buffer);
+//                if (read > -1) {
+//                    // 读取从缓存中获取到的2k数据
+//                    for (int j = 0; j < read; j++) {
+//                        if (!hadParseHeader) {
+//                            rnrn[0] = buffer[j];
+//                            rnrn[1] = buffer[j + 1];
+//                            rnrn[2] = buffer[j + 2];
+//                            rnrn[3] = buffer[j + 3];
+//
+//                            if (isNewPart(rnrn)) {
+//                                hadParseHeader = true;
+//                                doParseHeaderPart(requestParams, request.toString());
+//                                request.delete(0, j);
+//                                // 跳过header头最后一个的 \n\r\n, 注意j本身就是 \r
+//                                j = j + 3;
+//                            }
+//                            char c = (char) buffer[j];
+//                            request.append(c);
+//                        } else {
+//                            // 数据的时候走这里
+//                            if (dataList.size() > maxDataLimit) throw new RuntimeException(
+//                                    "Too Long Request Data Length, max length is " + maxDataLimit + " byte");
+//                            else dataList.addLast(buffer[j]);
+//                        }
+//                    }
+//                }
+//            } while (read == buffer.length);// 这里存在一个风险就是刚刚好满字节，但是出现的可能性及其低，
             // 我们忽略。首先，我们的初始容量需要足够避免出现这样的问题
         } catch (IOException e) {
             logger.warn(e.getMessage(), e);
@@ -149,19 +232,20 @@ public class Request {
                 logger.error("Get 请求解析出错", e);
             }
         } else {
-            int size = dataList.size();
-            logger.info("LinkListSize: " + size + "Byte, Content-Length:" + contentLength + "Byte");
-
-            Iterator<Byte> it = dataList.iterator();
-            while (it.hasNext()) {
-                request.append((char) it.next().byteValue());
-            }
-            String bodyContent = request.toString().trim();
+            String bodyContent = getDataStr(request, dataList);
             // 如果没有数据就不用解析了，上面将头解析完成就完成了
             if (bodyContent.length() > 0) {
                 doParseData(requestParams, bodyContent);
             }
         }
+    }
+
+    private String getDataStr(StringBuilder request, LinkedList<Byte> dataList) {
+        Iterator<Byte> it = dataList.iterator();
+        while (it.hasNext()) {
+            request.append((char) it.next().byteValue());
+        }
+        return request.toString().trim();
     }
 
     private void doParseData(RequestParams instace, String content) {
@@ -188,7 +272,7 @@ public class Request {
     }
 
     private void parseJson(RequestParams instace, String content) {
-        instace.setBodyJson(content.trim());
+        instace.setBodyJson(WebUtil.contentUseUtf8(content));
     }
 
     private void parseUrlEncoded(RequestParams instace, String content) throws UnsupportedEncodingException {
@@ -218,6 +302,8 @@ public class Request {
             do {
                 // remove head
                 content = content.substring(offset + markLen);
+                // remove head len remove
+                overOffset = overOffset - (offset + markLen);
 
                 // next head
                 offset = content.indexOf(startMark);
@@ -311,13 +397,6 @@ public class Request {
         for (int i = 1; i < headerArr.length; i++) {
             doParseHeader(instace, headerArr[i]);
         }
-
-        // 请求的请求头里面如果没有sessionid则创建一个
-        if (!requestHeader.hasCookie("JSESSIONID")) {
-            Session session = Session.create();
-            cookie.addCookie("JSESSIONID", session.getJSessionId());
-            dispacher.getSessionSet().add(session);
-        }
     }
 
     private void doParseHeader(RequestParams instace, String line) {
@@ -369,11 +448,13 @@ public class Request {
         // 解析Cooket获取JsessionId
         Session session = Session.create(jSessionId);
         boolean hasSession = false;
-        Iterator<Session> iterator = dispacher.getSessionSet().iterator();
+        Map<String, Session> map = dispacher.getSessionMap();
+        Iterator<Session> iterator = map.values().iterator();
+        List<String> removeKeys = new ArrayList<>();
         while (iterator.hasNext()) {
             Session next = iterator.next();
             if (next.hasExpired()) {
-                dispacher.getSessionSet().remove(next);
+                removeKeys.add(next.getJSessionId());
             } else {
                 if (!hasSession && next.equals(session)) {
                     hasSession = true;
@@ -382,11 +463,16 @@ public class Request {
                 }
             }
         }
+        if (removeKeys.size() > 0) {
+            for (String removeKey : removeKeys) {
+                map.remove(removeKey);
+            }
+        }
         // 如果没有，则新建一个
         if (!hasSession) {
             // 设置过期时间半个小时
             session.setExpired(30 * 60 * 1000);
-            dispacher.getSessionSet().add(session);
+            map.put(session.getJSessionId(), session);
             responseHeader.addHeader("JSESSIONID", session.getJSessionId());
         }
     }

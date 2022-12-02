@@ -35,7 +35,7 @@ public class XyDispacher extends Thread {
 
     private static final Logger logger = LoggerFactory.getLogger(XyDispacher.class);
 
-    private ExecutorService pool = new ThreadPoolExecutor(2, 50,
+    private ExecutorService pool = new ThreadPoolExecutor(5, 50,
             60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>());
 
@@ -64,10 +64,10 @@ public class XyDispacher extends Thread {
 
     private static final List<String> boolPool = Arrays.asList("true", "1", "on");
 
-    private final Set<Session> sessionSet = new HashSet<>();
+    private final Map<String, Session> sessionMap = new ConcurrentHashMap<>();
 
-    public Set<Session> getSessionSet() {
-        return sessionSet;
+    public Map<String, Session> getSessionMap() {
+        return sessionMap;
     }
 
     private static Date parseDate(String time) {
@@ -131,7 +131,7 @@ public class XyDispacher extends Thread {
                 try {
                     request.parse();
                 } catch (Exception e) {
-                    response.resonse500("500, Inner fault. can't parse request params.");
+                    response.response500("500, Inner fault. can't parse request params.");
                     return;
                 }
 
@@ -142,6 +142,13 @@ public class XyDispacher extends Thread {
                 }
 
                 if (null != request.getPathname() && controllerMapping.containsKey(request.getPathname())) {
+                    // 请求的请求头里面如果没有sessionid则创建一个
+                    if (!request.getRequestHeader().hasCookie("JSESSIONID")) {
+                        Session session = Session.create();
+                        request.getCookie().addCookie("JSESSIONID", session.getJSessionId());
+                        sessionMap.put(session.getJSessionId(), session);
+                    }
+
                     doHandeApi(request, response);
                 } else {
                     doHandeStaticResource(response);
@@ -173,6 +180,7 @@ public class XyDispacher extends Thread {
         // 二维数组结构
         Annotation[][] parameterAnnotations = definition.getMappingMethod().getParameterAnnotations();
 
+        boolean userResponse = false;
         Object[] args = new Object[parameterTypes.length];
         Map<String, Object> argsMap = request.getRequestParams().getParams();
         for (int i = 0; i < parameterTypes.length; i++) {
@@ -190,15 +198,26 @@ public class XyDispacher extends Thread {
                 args[i] = request.getRequestHeader();
             } else if (type == ResponseHeader.class) {
                 args[i] = request.getResponseHeader();
+            } else if (type == Request.class) {
+                args[i] = request;
+            } else if (type == Response.class) {
+                args[i] = response;
+                userResponse = true;
             }
         }
 
         Object apply = definition.getCall().apply(args);
 
+        // 如果用户取了输出，那么就由用户自己去实现输出
+        if (userResponse) {
+            return;
+        }
+
         if (apply == null)
             response.responseData("null", true);
         else {
             boolean isJson = definition.type.ordinal() == MsgType.JSON.ordinal();
+            boolean isHtml = definition.type.ordinal() == MsgType.HTML.ordinal();
             String resultMessage;
             if (isJson) {
                 try {
@@ -206,9 +225,12 @@ public class XyDispacher extends Thread {
                 } catch (Exception e) {
                     logger.error("json响应序列化出错", e);
                     String message = e.getMessage();
-                    response.resonse500(message);
+                    response.response500(message);
                     return;
                 }
+            } else if (isHtml) {
+                response.responseHtml(apply.toString());
+                return;
             } else {
                 resultMessage = apply.toString().trim();
                 if (resultMessage.startsWith("redirect:")) {

@@ -7,5 +7,5 @@ package com.xy.web;
  * @since 1.8
  */
 public enum MsgType {
-    JSON, PLAIN
+    JSON, PLAIN, HTML
 }
