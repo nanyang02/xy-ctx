@@ -86,7 +86,6 @@ public class Sqlite3 {
             } else {
                 t = resultSet.getString(1);
             }
-            t = resultSet.getInt(1);
             resultSet.close();
             statement.close();
         } catch (Exception e) {

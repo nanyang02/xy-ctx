@@ -10,9 +10,7 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * 应用上下文,封装好数据源和容器启动初始化的方法调用
@@ -27,7 +25,7 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
     private String[] ds;
     private Object beanConfig;
 
-    private List<SqlSession> sessions = new ArrayList<>();
+    private Map<String, SqlSession> sessionMap = new HashMap<>();
 
     public void regSqlSessionFactory(String alias, String xmlFileName) {
         try {
@@ -43,14 +41,42 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
                 Class aClass = (Class) mapper.getGenericSuperclass();
                 regProxyBean(m, mapper.getName());
             }
-            sessions.add(session);
+
+            if (sessionMap.containsKey(alias)) {
+                sessionMap.get(alias).close();
+                sessionMap.remove(alias);
+            }
+
+            sessionMap.put(alias, session);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    public void regSqlSessionFactory(String alias, String coreXmlFileContent, String charsetName) {
+        InputStream resourceAsStream = InputStreamUtil.getInputStream(coreXmlFileContent, charsetName);
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(resourceAsStream);
+
+        // the def is off auto commit.
+        SqlSession session = factory.openSession(true);
+        regProxyBean(session, alias);
+        Collection<Class<?>> mappers = session.getConfiguration().getMapperRegistry().getMappers();
+        for (Class<?> mapper : mappers) {
+            Object m = session.getMapper(mapper);
+            Class aClass = (Class) mapper.getGenericSuperclass();
+            regProxyBean(m, mapper.getName());
+        }
+
+        if (sessionMap.containsKey(alias)) {
+            sessionMap.get(alias).close();
+            sessionMap.remove(alias);
+        }
+
+        sessionMap.put(alias, session);
+    }
+
     public void disconnectDatasource() {
-        for (SqlSession session : sessions) {
+        for (SqlSession session : sessionMap.values()) {
             try {
                 session.close();
             } catch (Exception ignore) {
@@ -71,7 +97,6 @@ public class MyBatisAppContext extends ApplicationDefaultContext {
         // web
         useWeb(appClass, port);
     }
-
 
 
     public MyBatisAppContext(Class<?> appClass, String[] ds) {
