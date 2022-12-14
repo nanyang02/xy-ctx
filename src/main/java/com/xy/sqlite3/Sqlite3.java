@@ -147,6 +147,35 @@ public class Sqlite3 {
         return t;
     }
 
+    private static <T> List<T> toObjectList(ResultSet resultSet, Class<T> tClass) throws Exception {
+
+        if (tClass == String.class) {
+            return getObjectFromRs(resultSet);
+        }
+        if (tClass == Date.class) {
+            return getObjectFromRs(resultSet);
+        }
+        if (tClass == Integer.class) {
+            return getObjectFromRs(resultSet);
+        }
+        if (tClass == Float.class || tClass == Double.class) {
+            return getObjectFromRs(resultSet);
+        }
+        if (tClass == Boolean.class) {
+            return getObjectFromRs(resultSet);
+        }
+
+        return ConvertResultSetToEntity.parseDataEntityBeans(resultSet, tClass);
+    }
+
+    private static <T> List<T> getObjectFromRs(ResultSet resultSet) throws SQLException {
+        List<T> listResult = new ArrayList();
+        while (resultSet.next()) {
+            listResult.add((T) resultSet.getString(1));
+        }
+        return listResult;
+    }
+
     public static <T> List<T> queryList(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
         Connection c = null;
         List<T> t = new ArrayList<>();
@@ -158,7 +187,7 @@ public class Sqlite3 {
             pst.accept(statement);
             ResultSet resultSet = statement.executeQuery();
             // 转换成对象
-            t = ConvertResultSetToEntity.parseDataEntityBeans(resultSet, tClass);
+            t = toObjectList(resultSet, tClass);
             resultSet.close();
             statement.close();
         } catch (Exception e) {

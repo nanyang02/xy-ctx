@@ -24,4 +24,8 @@ public class InputStreamUtil {
         return resourceAsStream;
     }
 
+    public static InputStream getInputStreamByUTF8(String content) {
+        return getInputStream(content, "UTF-8");
+    }
+
 }
