@@ -1,4 +1,4 @@
-package com.xy.sqlite3;
+package com.xy.builder.dto;
 
 public class DataTableEntity {
 

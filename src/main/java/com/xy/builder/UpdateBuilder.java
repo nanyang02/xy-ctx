@@ -1,28 +1,31 @@
-package com.xy.sqlite3;
+package com.xy.builder;
 
 import com.alibaba.fastjson.JSON;
-
-import java.util.LinkedList;
 
 /**
  * 实现更新的简单构建
  */
 public class UpdateBuilder extends AbsSqlBuilder {
 
+    private XyJdbc jdbc;
+
+    @Override
+    protected XyJdbc getJdbc() {
+        return jdbc;
+    }
+
     public UpdateBuilder printSql() {
-        this.logSql = true;
+        usePrintSql();
         return this;
     }
 
-    public UpdateBuilder(String tableName) {
-        index = 1;
-        args = new LinkedList<>();
-        sql = new StringBuilder("update").append(" ").append(tableName).append(" ");
-        where = new StringBuilder();
+    public UpdateBuilder(XyJdbc jdbc, String tableName) {
+        getSql().append("update ").append(tableName).append(" ");
+        this.jdbc = jdbc;
     }
 
-    public static UpdateBuilder getInstance(String tableName) {
-        return new UpdateBuilder(tableName);
+    public static UpdateBuilder getInstance(XyJdbc jdbc, String tableName) {
+        return new UpdateBuilder(jdbc, tableName);
     }
 
     public UpdateBuilder update(String column, Object arg) {
@@ -52,12 +55,13 @@ public class UpdateBuilder extends AbsSqlBuilder {
 
     @Override
     public String getPreSql() {
-        String psql = sql.toString() + where.toString();
-        if (logSql) logger.info("SQLITE::SQL -> {}, args: {}", psql, JSON.toJSONString(getArgsValues()));
+        String psql = getSql().toString() + getWhere().toString();
+        if (isLogSql())
+            logger.info(jdbc.getDbType().name().toUpperCase() + "::SQL -> {}, args: {}", psql, JSON.toJSONString(getArgsValues()));
         return psql;
     }
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
 
         UpdateBuilder sql = UpdateBuilder.getInstance("user")
                 .update("code", "abc")
@@ -69,6 +73,6 @@ public class UpdateBuilder extends AbsSqlBuilder {
 
         String preSql = sql.getPreSql();
         System.out.println(preSql);
-    }
+    }*/
 
 }

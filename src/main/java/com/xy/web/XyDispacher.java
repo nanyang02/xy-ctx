@@ -89,9 +89,9 @@ public class XyDispacher extends Thread {
      *
      * @param port
      */
-    public void runServer(int port) {
+    public void runServer(int port, String host) {
         try {
-            serverSocket = new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
+            serverSocket = new ServerSocket(port, 1, InetAddress.getByName(host));
         } catch (IOException e) {
             throw new RuntimeException("无法绑定服务端口", e);
         }
@@ -113,6 +113,10 @@ public class XyDispacher extends Thread {
         }
 
         logger.info("-- The End --");
+    }
+
+    public void runServer(int port) {
+        runServer(port, "127.0.0.1");
     }
 
     private void submitTask(Socket cli) {

@@ -1,5 +1,7 @@
-package com.xy.sqlite3;
+package com.xy.builder;
 
+import com.xy.builder.dto.ParIndexBo;
+import com.xy.builder.v0.InsertBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,25 +13,52 @@ import java.util.stream.Collectors;
 public abstract class AbsSqlBuilder {
 
     // 按照不同的组成部分来构建
-    StringBuilder sql, where, order;
+    private StringBuilder sql = new StringBuilder(), join = new StringBuilder(), where = new StringBuilder(), order = new StringBuilder();
 
     // 参数位置坐标索引（也用于进行PrepareStatement按照顺序来设置变量参数）
-    Integer index;
+    private int index = 0;
 
     // 参数有序列表
-    LinkedList<ParIndexBo> args;
+    private LinkedList<ParIndexBo> args = new LinkedList<>();
 
     // 是否打印
     boolean logSql = false, unUse = true, unuseWhere = true, unUseOrder = true;
 
     // 当前构建的步骤的编号
-    int gStep = 0;
+    public int gStep = 0;
+
+    public StringBuilder getSql() {
+        return sql;
+    }
+
+    public StringBuilder getWhere() {
+        return where;
+    }
+
+    public StringBuilder getOrder() {
+        return order;
+    }
+
+    public LinkedList<ParIndexBo> getArgs() {
+        return args;
+    }
+
+    public StringBuilder getJoin() {
+        return join;
+    }
+
+    /**
+     * 必须提供实现，用于获取Sqlit3的功能支持
+     *
+     * @return
+     */
+    protected abstract XyJdbc getJdbc();
 
     // 定义构建步骤的码值
-    static final int STEP_SELECT = 1, STEP_INSERT = 2, STEP_UPDATE = 2, STEP_WHERE = 3, STEP_ORDER = 4, STEPT_LIMIT = 5;
+    public static final int STEP_SELECT = 1, STEP_INSERT = 2, STEP_UPDATE = 2, STEP_JOIN = 3, STEP_WHERE = 4, STEP_ORDER = 5, STEPT_LIMIT = 6;
 
     // 应用码值设置
-    boolean overStep(int step) {
+    public boolean overStep(int step) {
         // 如果给定的步骤于
         if (step >= gStep) {
             // 单向递增
@@ -41,7 +70,7 @@ public abstract class AbsSqlBuilder {
         return true;
     }
 
-    Logger logger = LoggerFactory.getLogger(getClass());
+    public Logger logger = LoggerFactory.getLogger(getClass());
 
     public abstract String getPreSql();
 
@@ -50,20 +79,26 @@ public abstract class AbsSqlBuilder {
     }
 
 
-    void doSelect(String column) {
-        if (overStep(STEP_SELECT)) throw new RuntimeException("Sql构建出错，请按照 select where order limit 的循序设置sql");
+    public void doSelect(String column) {
+        if (overStep(STEP_SELECT)) throw new RuntimeException("Sql构建出错，请按照 select from join where order limit 的循序设置sql");
         sql.append(unUse ? "" : ", ").append(column);
         if (unUse) unUse = false;
     }
 
-    void doUpdate(String column, Object arg) {
+    public void doJoin(String sql) {
+        if (overStep(STEP_JOIN)) throw new RuntimeException("Sql构建出错，请按照 select from join where order limit 的循序设置sql");
+        if (null != sql && !"".equals(sql))
+            join.append(" ").append(sql).append(" ");
+    }
+
+    public void doUpdate(String column, Object arg) {
         if (overStep(STEP_UPDATE)) throw new RuntimeException("Sql构建出错，请按照 set where 的循序设置sql");
         sql.append(unUse ? "set " : ", ").append(column).append(" = ?");
         if (unUse) unUse = false;
         args.add(new ParIndexBo().setIndex(index++).setData(arg));
     }
 
-    void doInsert(String column, Object arg) {
+    public void doInsert(String column, Object arg) {
         if (overStep(STEP_INSERT)) throw new RuntimeException("Sql构建出错，请按照 select value 的循序设置sql");
         sql.append(unUse ? "" : ", ").append(column);
         where.append(unUse ? "?" : ", ?");
@@ -71,27 +106,27 @@ public abstract class AbsSqlBuilder {
         args.add(new ParIndexBo().setIndex(index++).setData(arg));
     }
 
-    void doWhere(String column, Object arg) {
+    public void doWhere(String column, Object arg) {
         if (overStep(STEP_WHERE)) throw new RuntimeException("Sql构建出错 where 不能出现在 order by 和 limit 后面，请调整sql构建的顺序");
         where.append(unuseWhere ? " where " : " and ").append(column).append(" = ?");
         if (unuseWhere) unuseWhere = false;
         args.add(new ParIndexBo().setIndex(index++).setData(arg));
     }
 
-    void doWhereSingle(String sql) {
+    public void doWhereSingle(String sql) {
         if (overStep(STEP_WHERE)) throw new RuntimeException("Sql构建出错 where 不能出现在 order by 和 limit 后面，请调整sql构建的顺序");
         where.append(unuseWhere ? " where " : " and ").append(sql);
         if (unuseWhere) unuseWhere = false;
     }
 
-    void doOrder(String column, boolean isAsc, boolean isDesc) {
+    public void doOrder(String column, boolean isAsc, boolean isDesc) {
         if (overStep(STEP_ORDER)) throw new RuntimeException("Sql构建出错 where 不能出现在 order by 和 limit 后面，请调整sql构建的顺序");
         order.append(unUseOrder ? " order by " : ", ").append(column).append(isAsc ? " asc" : isDesc ? " desc" : "");
         if (unUseOrder) unUseOrder = false;
         index++;
     }
 
-    void doLimit(int offset, int length) {
+    public void doLimit(int offset, int length) {
         if (overStep(STEPT_LIMIT)) throw new RuntimeException("Sql构建出错 where 不能出现在 order by 和 limit 后面，请调整sql构建的顺序");
         // 放在 order 里面就好
         order.append(" limit ").append(offset).append(", ").append(length);
@@ -100,7 +135,7 @@ public abstract class AbsSqlBuilder {
     }
 
     public int execute() {
-        return Sqlite3.executeSql(getPreSql(), preparedStatement -> {
+        return getJdbc().executeSql(getPreSql(), preparedStatement -> {
             try {
                 for (ParIndexBo arg : args) {
                     arg.fill(preparedStatement);
@@ -109,5 +144,13 @@ public abstract class AbsSqlBuilder {
                 e.printStackTrace();
             }
         });
+    }
+
+    public void usePrintSql() {
+        logSql = true;
+    }
+
+    public boolean isLogSql() {
+        return logSql;
     }
 }

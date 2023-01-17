@@ -1,10 +1,10 @@
-package com.xy.sqlite3;
+package com.xy.builder;
 
 import com.alibaba.fastjson.JSON;
+import com.xy.builder.dto.ParIndexBo;
 
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -12,29 +12,57 @@ import java.util.List;
  */
 public class SelectBuilder extends AbsSqlBuilder {
 
-    private String from, limit;
+    private XyJdbc jdbc;
 
-    public SelectBuilder(String tableName) {
-        index = 1;
-        args = new LinkedList<>();
-        sql = new StringBuilder("select").append(" ");
-        from = " from " + tableName;
-        limit = "";
-        where = new StringBuilder();
-        order = new StringBuilder();
+    private String from, limit, column_prefix;
+
+    @Override
+    protected XyJdbc getJdbc() {
+        return jdbc;
     }
 
-    public SelectBuilder printSql() {
-        this.logSql = true;
+    public SelectBuilder(XyJdbc jdbc, String tableName, String alias) {
+        if (null == jdbc)
+            throw new RuntimeException("null value of jdbc");
+        getSql().append("select ");
+        from = " from " + tableName;
+        column_prefix = limit = "";
+        this.jdbc = jdbc;
+
+        if (null != alias) {
+            from = from + " " + alias;
+            column_prefix = alias + ".";
+        }
+    }
+
+    /**
+     * main table prefix
+     *
+     * @param alias
+     * @return
+     */
+    public SelectBuilder mAlias(String alias) {
+        if (overStep(0)) {
+            throw new RuntimeException("main table prefix must as first position");
+        }
+        column_prefix = alias + ".";
         return this;
     }
 
-    public static SelectBuilder getInstance(String tableName) {
-        return new SelectBuilder(tableName);
+    public SelectBuilder printSql() {
+        usePrintSql();
+        return this;
+    }
+
+    public static SelectBuilder getInstance(XyJdbc jdbc, String tableName) {
+        return new SelectBuilder(jdbc, tableName, null);
     }
 
     public SelectBuilder select(String column) {
-        doSelect(column);
+        if (column.contains(",")) {
+            column = column.replaceAll(",", ", " + column_prefix);
+        }
+        doSelect(column_prefix + column);
         return this;
     }
 
@@ -48,27 +76,36 @@ public class SelectBuilder extends AbsSqlBuilder {
 
     public SelectBuilder allColumn() {
         if (gStep > 0) throw new RuntimeException("Sql构建出错，select * 之前不能有其他查询");
-        doSelect("*");
+        doSelect(column_prefix + "*");
         // 升级到where，不允许再添加select
         overStep(STEP_WHERE);
         return this;
     }
 
     public SelectBuilder orderAsc(String column) {
-        doOrder(column, true, false);
+        doOrder(column_prefix + column, true, false);
         return this;
     }
 
     public SelectBuilder orderDesc(String column) {
-        doOrder(column, false, true);
+        doOrder(column_prefix + column, false, true);
         return this;
     }
 
     public SelectBuilder order(String column) {
-        doOrder(column, false, false);
+        doOrder(column_prefix + column, false, false);
         return this;
     }
 
+    public SelectBuilder join(String sql) {
+        doJoin(sql);
+        return this;
+    }
+
+    public SelectBuilder ljoin(String tb, String tbColumn, String relateColumn, String alias) {
+        doJoin("left join " + tb + " " + alias + " on " + alias + "." + tbColumn + " = " + column_prefix + relateColumn);
+        return this;
+    }
 
     public SelectBuilder limit(int offset, int length) {
         doLimit(offset, length);
@@ -77,15 +114,16 @@ public class SelectBuilder extends AbsSqlBuilder {
 
     @Override
     public String getPreSql() {
-        String psql = sql.toString() + from + where.toString() + order.toString() + limit;
-        if (logSql) logger.info("SQLITE::SQL -> {}, args: {}", psql, JSON.toJSONString(getArgsValues()));
+        String psql = getSql() + from + getJoin().toString() + getWhere().toString() + getOrder().toString() + limit;
+        if (isLogSql())
+            logger.info(jdbc.getDbType().name().toUpperCase() + "::SQL -> {}, args: {}", psql, JSON.toJSONString(getArgsValues()));
         return psql;
     }
 
     public Integer queryInt() {
-        return Sqlite3.queryInt(getPreSql(), preparedStatement -> {
+        return jdbc.queryInt(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -95,9 +133,9 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public String queryStr() {
-        return Sqlite3.queryStr(getPreSql(), preparedStatement -> {
+        return jdbc.queryStr(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -107,9 +145,9 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public Date queryDate() {
-        return Sqlite3.queryDate(getPreSql(), preparedStatement -> {
+        return jdbc.queryDate(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -119,9 +157,9 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public Boolean queryBool() {
-        return Sqlite3.queryBool(getPreSql(), preparedStatement -> {
+        return jdbc.queryBool(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -131,9 +169,9 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public Double queryDouble() {
-        return Sqlite3.queryDouble(getPreSql(), preparedStatement -> {
+        return jdbc.queryDouble(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -143,9 +181,9 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public <T> T queryObject(Class<T> tClass) {
-        return Sqlite3.queryObject(getPreSql(), preparedStatement -> {
+        return jdbc.queryObject(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -155,9 +193,9 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public <T> List<T> queryObjectList(Class<T> tClass) {
-        return Sqlite3.queryList(getPreSql(), preparedStatement -> {
+        return jdbc.queryList(getPreSql(), preparedStatement -> {
             try {
-                for (ParIndexBo arg : args) {
+                for (ParIndexBo arg : getArgs()) {
                     arg.fill(preparedStatement);
                 }
             } catch (SQLException e) {
@@ -172,48 +210,27 @@ public class SelectBuilder extends AbsSqlBuilder {
     }
 
     public SelectBuilder where(String column, Object arg) {
-        doWhere(column, arg);
+        doWhere(column_prefix + column, arg);
         return this;
     }
 
     public SelectBuilder byId(Object arg) {
-        return where("id", arg);
+        return where(column_prefix + "id", arg);
     }
 
     public SelectBuilder llike(String column, String keyword) {
-        doWhereSingle(column + " like '%" + keyword + "'");
+        doWhereSingle(column_prefix + column + " like '%" + keyword + "'");
         return this;
     }
 
     public SelectBuilder rlike(String column, String keyword) {
-        doWhereSingle(column + " like '" + keyword + "%'");
+        doWhereSingle(column_prefix + column + " like '" + keyword + "%'");
         return this;
     }
 
     public SelectBuilder blike(String column, String keyword) {
-        doWhereSingle(column + " like '%" + keyword + "%'");
+        doWhereSingle(column_prefix + column + " like '%" + keyword + "%'");
         return this;
-    }
-
-    public static void main(String[] args) {
-        SelectBuilder sql = SelectBuilder.getInstance("user")
-//                .select("code")
-                .allColumn()
-                .select("name")
-                .select("name2,addr")
-                .select("keys")
-//                .where("id is not null")
-                .where("name", "aaa")
-                .where("name2", "bbb")
-                .llike("name", "na")
-                .where("name like '%x%'")
-//                .orderAsc("name")
-//                .orderAsc("name2")
-                .limit(0, 2);
-
-        String preSql = sql.getPreSql();
-        System.out.println(preSql);
-        System.out.println(sql.getArgsValues());
     }
 
 }

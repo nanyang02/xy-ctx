@@ -1,5 +1,10 @@
 package com.xy.sqlite3;
 
+import com.xy.builder.dto.ConvertResultSetToEntity;
+import com.xy.builder.RsSingleType;
+import com.xy.builder.XyJdbc;
+import com.xy.builder.DbType;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -12,15 +17,22 @@ import java.util.function.Consumer;
  * @author yangnan 2022/12/1 10:26
  * @since 1.8
  */
-public class Sqlite3 {
+public class Sqlite3 implements XyJdbc {
 
-    private static String db = "cfg.db";
+    private String db = "local.db";
 
-    public static void setDbName(String name) {
-        db = name;
+    public Sqlite3(String db) {
+        if (null != db && !"".equals(db))
+            this.db = db;
     }
 
-    public static int execSql(String sql) {
+    @Override
+    public DbType getDbType() {
+        return DbType.sqlite3;
+    }
+
+    @Override
+    public int execSql(String sql) {
         Connection c = null;
         int effect = 0;
         try {
@@ -44,7 +56,8 @@ public class Sqlite3 {
         return effect;
     }
 
-    public static void querySql(String sql, Consumer<ResultSet> rsConsumer) {
+    @Override
+    public void querySql(String sql, Consumer<ResultSet> rsConsumer) {
         Connection c = null;
         try {
             Class.forName("org.sqlite.JDBC");
@@ -66,7 +79,7 @@ public class Sqlite3 {
         }
     }
 
-    private static Object querySingleVal(String sql, Consumer<PreparedStatement> pst, RsSingleType singleType) {
+    private Object querySingleVal(String sql, Consumer<PreparedStatement> pst, RsSingleType singleType) {
         Connection c = null;
         Object t = null;
         try {
@@ -100,27 +113,33 @@ public class Sqlite3 {
         return t;
     }
 
-    public static Integer queryInt(String sql, Consumer<PreparedStatement> pst) {
+    @Override
+    public Integer queryInt(String sql, Consumer<PreparedStatement> pst) {
         return (Integer) querySingleVal(sql, pst, RsSingleType.INT);
     }
 
-    public static String queryStr(String sql, Consumer<PreparedStatement> pst) {
+    @Override
+    public String queryStr(String sql, Consumer<PreparedStatement> pst) {
         return (String) querySingleVal(sql, pst, RsSingleType.STR);
     }
 
-    public static Date queryDate(String sql, Consumer<PreparedStatement> pst) {
+    @Override
+    public Date queryDate(String sql, Consumer<PreparedStatement> pst) {
         return (Date) querySingleVal(sql, pst, RsSingleType.DATE);
     }
 
-    public static Boolean queryBool(String sql, Consumer<PreparedStatement> pst) {
+    @Override
+    public Boolean queryBool(String sql, Consumer<PreparedStatement> pst) {
         return (Boolean) querySingleVal(sql, pst, RsSingleType.BOOL);
     }
 
-    public static Double queryDouble(String sql, Consumer<PreparedStatement> pst) {
+    @Override
+    public Double queryDouble(String sql, Consumer<PreparedStatement> pst) {
         return (Double) querySingleVal(sql, pst, RsSingleType.DOUBLE);
     }
 
-    public static <T> T queryObject(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
+    @Override
+    public <T> T queryObject(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
         Connection c = null;
         T t = null;
         try {
@@ -147,7 +166,7 @@ public class Sqlite3 {
         return t;
     }
 
-    private static <T> List<T> toObjectList(ResultSet resultSet, Class<T> tClass) throws Exception {
+    private <T> List<T> toObjectList(ResultSet resultSet, Class<T> tClass) throws Exception {
 
         if (tClass == String.class) {
             return getObjectFromRs(resultSet);
@@ -168,7 +187,7 @@ public class Sqlite3 {
         return ConvertResultSetToEntity.parseDataEntityBeans(resultSet, tClass);
     }
 
-    private static <T> List<T> getObjectFromRs(ResultSet resultSet) throws SQLException {
+    private <T> List<T> getObjectFromRs(ResultSet resultSet) throws SQLException {
         List<T> listResult = new ArrayList();
         while (resultSet.next()) {
             listResult.add((T) resultSet.getString(1));
@@ -176,7 +195,8 @@ public class Sqlite3 {
         return listResult;
     }
 
-    public static <T> List<T> queryList(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
+    @Override
+    public <T> List<T> queryList(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
         Connection c = null;
         List<T> t = new ArrayList<>();
         try {
@@ -202,13 +222,14 @@ public class Sqlite3 {
         return t;
     }
 
-    public static int executeSql(String sql, Consumer<PreparedStatement> pst) {
+    @Override
+    public int executeSql(String sql, Consumer<PreparedStatement> pst) {
         Connection c = null;
         int effect = 0;
         try {
             Class.forName("org.sqlite.JDBC");
             // if not exists will create db
-            c = DriverManager.getConnection("jdbc:sqlite:cfg.db");
+            c = DriverManager.getConnection("jdbc:sqlite:" + db);
 
             PreparedStatement statement = c.prepareStatement(sql);
             pst.accept(statement);
