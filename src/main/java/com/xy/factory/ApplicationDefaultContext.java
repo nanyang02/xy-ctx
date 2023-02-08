@@ -126,6 +126,12 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
     }
 
     public void useWeb(String host, Integer port) {
+        if (null != port) dispacher.setPort(port);
+        if (null != host) dispacher.setHost(host);
+        useWeb();
+    }
+
+    private void loadControllerMapping() {
         Set<Class<?>> controllerClassList = new HashSet<>();
 
         for (BeanDefine value : beanFactory.definitions.values()) {
@@ -135,14 +141,10 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
                 dispacher.addMapping(getBean(value.getTargetClass()));
             }
         }
+    }
 
-        if (null != port) {
-            dispacher.setPort(port);
-        }
-
-        dispacher.setHost(host);
-
-        // 启动服务
+    public void useWeb() {
+        loadControllerMapping();
         dispacher.start();
     }
 
