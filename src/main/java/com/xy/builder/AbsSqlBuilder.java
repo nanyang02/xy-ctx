@@ -1,7 +1,6 @@
 package com.xy.builder;
 
 import com.xy.builder.dto.ParIndexBo;
-import com.xy.builder.v0.InsertBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +15,11 @@ public abstract class AbsSqlBuilder {
     private StringBuilder sql = new StringBuilder(), join = new StringBuilder(), where = new StringBuilder(), order = new StringBuilder();
 
     // 参数位置坐标索引（也用于进行PrepareStatement按照顺序来设置变量参数）
-    private int index = 0;
+    private int index = 1;
+
+    public int getArgIndex() {
+        return index > 0 ? index - 1 : 0;
+    }
 
     // 参数有序列表
     private LinkedList<ParIndexBo> args = new LinkedList<>();
@@ -80,7 +83,8 @@ public abstract class AbsSqlBuilder {
 
 
     public void doSelect(String column) {
-        if (overStep(STEP_SELECT)) throw new RuntimeException("Sql构建出错，请按照 select from join where order limit 的循序设置sql");
+        if (overStep(STEP_SELECT))
+            throw new RuntimeException("Sql构建出错，请按照 select from join where order limit 的循序设置sql");
         sql.append(unUse ? "" : ", ").append(column);
         if (unUse) unUse = false;
     }

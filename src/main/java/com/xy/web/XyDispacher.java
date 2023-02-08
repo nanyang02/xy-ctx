@@ -372,8 +372,26 @@ public class XyDispacher extends Thread {
         }
     }
 
+    // 完成Mapping在controller上的标注的融入
+    private static String concatPath(String b, String e) {
+        if ("/".equals(b)) {
+            b = "";
+        } else if (b.length() > 1) {
+            if ('/' != b.charAt(0)) b = '/' + b;
+            if (b.length() > 1 && '/' == b.charAt(b.length() - 1)) b = b.substring(0, b.length() - 1);
+        }
+
+        if ('/' != e.charAt(0)) e = '/' + e;
+        return b + e;
+    }
+
     public void addMapping(Object controller) {
         Method[] methods = controller.getClass().getMethods();
+
+        // 扩展一下Mapping注解，如果在Controller上添加的注解上有非空串就进行拼接
+        Mapping controllerMapping = controller.getClass().getAnnotation(Mapping.class);
+        boolean ifControllerMapping = null != controllerMapping && controllerMapping.value().trim().length() > 0;
+
         for (Method method : methods) {
 
             Mapping mapping = method.getAnnotation(Mapping.class);
@@ -397,7 +415,7 @@ public class XyDispacher extends Thread {
             definition.setControllerClass(controller.getClass());
 
             if (mapping != null) {
-                definition.setMapping(mapping.value());
+                definition.setMapping(concatPath(ifControllerMapping ? controllerMapping.value().trim() : "", mapping.value().trim()));
                 definition.setType(mapping.type());
 
             }
@@ -416,7 +434,7 @@ public class XyDispacher extends Thread {
                 definition.setType(MsgType.JSON);
             }
 
-            controllerMapping.put(definition.getMapping(), definition);
+            this.controllerMapping.put(definition.getMapping(), definition);
         }
     }
 }
