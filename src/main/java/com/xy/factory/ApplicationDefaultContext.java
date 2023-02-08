@@ -146,6 +146,7 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
     public void useWeb() {
         loadControllerMapping();
         dispacher.start();
+        webDispatcherJoin();
     }
 
     /**

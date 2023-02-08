@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<div>
+
+    <project-props>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.8</java.version>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+    </project-props>
+
+    <sample-java-demo>
+        <!-- pom.xml -->
+        <pomXml>
+            <dependencies>
+
+                <dependency>
+                    <groupId>com.xy</groupId>
+                    <artifactId>xy-ctx</artifactId>
+                    <version>1.0</version>
+                </dependency>
+
+                <!-- use log4j impl -->
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                    <version>2.13.2</version>
+                </dependency>
+
+                <!-- use slf4j -->
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <version>1.7.30</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                    <version>5.1.47</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.mybatis</groupId>
+                    <artifactId>mybatis</artifactId>
+                    <version>3.5.3</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.google.code.gson</groupId>
+                    <artifactId>gson</artifactId>
+                    <version>2.9.1</version>
+                </dependency>
+
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>8</source>
+                            <target>8</target>
+                        </configuration>
+                    </plugin>
+                    <!-- maven 打包时跳过测试 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+                <!-- 支持将src下的xml文件也识别成资源一起打包，用于mybatis和dao在一起的时候 -->
+                <resources>
+                    <resource>
+                        <directory>src/main/java</directory>
+                        <includes>
+                            <include>**/*.xml</include>
+                        </includes>
+                        <filtering>true</filtering>
+                    </resource>
+                </resources>
+            </build>
+        </pomXml>
+
+        <!-- log4j2.xml -->
+        <Configuration xmlns="http://logging.apache.org/log4j/2.0/config" status="WARN">
+            <Appenders>
+                <Console name="Console" target="SYSTEM_OUT">
+                    <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"></PatternLayout>
+                </Console>
+            </Appenders>
+
+            <Loggers>
+                <!-- 日志打印两次 https://www.wenjiangs.com/group/topic-509372.html -->
+                <Logger name="com.xy" level="debug" additivity="false">
+                    <AppenderRef ref="Console"/>
+                </Logger>
+                <Root level="error">
+                    <AppenderRef ref="Console"/>
+                </Root>
+            </Loggers>
+        </Configuration>
+    </sample-java-demo>
+
+    <sample-mybatis-demo>
+        <!-- pom.xml -->
+        <pomXml>
+            <dependencies>
+
+                <dependency>
+                    <groupId>com.xy</groupId>
+                    <artifactId>xy-ctx</artifactId>
+                    <version>1.0</version>
+                </dependency>
+
+                <!-- use log4j impl -->
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                    <version>2.13.2</version>
+                </dependency>
+
+                <!-- use slf4j -->
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <version>1.7.30</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                    <version>5.1.47</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.mybatis</groupId>
+                    <artifactId>mybatis</artifactId>
+                    <version>3.5.3</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.google.code.gson</groupId>
+                    <artifactId>gson</artifactId>
+                    <version>2.9.1</version>
+                </dependency>
+
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>8</source>
+                            <target>8</target>
+                        </configuration>
+                    </plugin>
+                    <!-- maven 打包时跳过测试 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+                <!-- 支持将src下的xml文件也识别成资源一起打包，用于mybatis和dao在一起的时候 -->
+                <resources>
+                    <resource>
+                        <directory>src/main/java</directory>
+                        <includes>
+                            <include>**/*.xml</include>
+                        </includes>
+                        <filtering>true</filtering>
+                    </resource>
+                </resources>
+            </build>
+        </pomXml>
+
+        <!-- log4j2.xml -->
+        <Configuration xmlns="http://logging.apache.org/log4j/2.0/config" status="WARN">
+            <Appenders>
+                <Console name="Console" target="SYSTEM_OUT">
+                    <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"></PatternLayout>
+                </Console>
+            </Appenders>
+
+            <Loggers>
+                <!-- 日志打印两次 https://www.wenjiangs.com/group/topic-509372.html -->
+                <Logger name="com.xy" level="debug" additivity="false">
+                    <AppenderRef ref="Console"/>
+                </Logger>
+                <Root level="error">
+                    <AppenderRef ref="Console"/>
+                </Root>
+            </Loggers>
+        </Configuration>
+    </sample-mybatis-demo>
+</div>
