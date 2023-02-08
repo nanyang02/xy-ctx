@@ -24,6 +24,10 @@ public class XySqlFactory {
 
     }
 
+    public int execSql(String sql) {
+        return jdbc.execSql(sql);
+    }
+
     public InsertBuilder insertBuilder(String table) {
         return new InsertBuilder(jdbc, table);
     }
