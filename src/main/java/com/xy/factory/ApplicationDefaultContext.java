@@ -10,6 +10,7 @@ import com.xy.web.annotation.EnableWeb;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * bean容器实现类, 提供具体的容器的注册和获取bean的基本功能
@@ -115,7 +116,16 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
         }
     }
 
+    /**
+     * 提供支持绑定在指定的端口上运行
+     *
+     * @param port
+     */
     public void useWeb(Integer port) {
+        useWeb("127.0.0.1", port);
+    }
+
+    public void useWeb(String host, Integer port) {
         Set<Class<?>> controllerClassList = new HashSet<>();
 
         for (BeanDefine value : beanFactory.definitions.values()) {
@@ -130,8 +140,19 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
             dispacher.setPort(port);
         }
 
+        dispacher.setHost(host);
+
         // 启动服务
         dispacher.start();
+    }
+
+    /**
+     * 提供在启用之前修改绑定的IP的支持
+     *
+     * @param dispacherConsumer
+     */
+    public void useWebBeforeStart(Consumer<XyDispacher> dispacherConsumer) {
+        dispacherConsumer.accept(dispacher);
     }
 
     public void useWeb(Class<?> c) {

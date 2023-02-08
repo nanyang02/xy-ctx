@@ -35,17 +35,24 @@ public class XyDispacher extends Thread {
 
     private static final Logger logger = LoggerFactory.getLogger(XyDispacher.class);
 
-    private ExecutorService pool = new ThreadPoolExecutor(5, 50,
+    private static ExecutorService pool = new ThreadPoolExecutor(5, 50,
             60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>());
 
     private static ServerSocket serverSocket;
     private int port = 8665;
+    private static String HOST = "0.0.0.0";
+    private boolean isRunDispacter = false;
 
-    private Map<String, MappingDefinition> controllerMapping = new ConcurrentHashMap<>();
+    private static Map<String, MappingDefinition> controllerMapping = new ConcurrentHashMap<>();
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public void setHost(String host) {
+        if (!isRunDispacter) HOST = host;
+        else logger.warn("Web Server Had Running, So can't change the bind Host!");
     }
 
     /**
@@ -64,7 +71,7 @@ public class XyDispacher extends Thread {
 
     private static final List<String> boolPool = Arrays.asList("true", "1", "on");
 
-    private final Map<String, Session> sessionMap = new ConcurrentHashMap<>();
+    private static final Map<String, Session> sessionMap = new ConcurrentHashMap<>();
 
     public Map<String, Session> getSessionMap() {
         return sessionMap;
@@ -89,7 +96,7 @@ public class XyDispacher extends Thread {
      *
      * @param port
      */
-    public void runServer(int port, String host) {
+    public static void runServer(XyDispacher dispacher, int port, String host) {
         try {
             serverSocket = new ServerSocket(port, 1, InetAddress.getByName(host));
         } catch (IOException e) {
@@ -98,7 +105,7 @@ public class XyDispacher extends Thread {
         logger.info("Http Server Run At http://localhost:" + port);
         while (!shutdown) {
             try {
-                submitTask(serverSocket.accept());
+                submitTask(dispacher, serverSocket.accept());
             } catch (Exception e) {
                 logger.error("无法建立客户端请求", e);
             }
@@ -115,13 +122,7 @@ public class XyDispacher extends Thread {
         logger.info("-- The End --");
     }
 
-    public void runServer(int port) {
-        runServer(port, "127.0.0.1");
-    }
-
-    private void submitTask(Socket cli) {
-        final XyDispacher dispacher = this;
-
+    private static void submitTask(final XyDispacher dispacher, final Socket cli) {
         // 客户端，由线程池来完成新消息的处理
         pool.submit(() -> {
             Request request = new Request(dispacher);
@@ -172,11 +173,11 @@ public class XyDispacher extends Thread {
         });
     }
 
-    private void doHandeStaticResource(Response response) {
+    private static void doHandeStaticResource(Response response) {
         response.sendStaticResource();
     }
 
-    private void doHandeApi(Request request, Response response) {
+    private static void doHandeApi(Request request, Response response) {
         MappingDefinition definition = controllerMapping.get(request.getPathname());
 
         // 需要获取方法的参数列表的类型
@@ -247,7 +248,7 @@ public class XyDispacher extends Thread {
         }
     }
 
-    private Object parseAnnoJson(Map<String, Object> argsMap, String bodyJson, Json json, Class<?> type) {
+    private static Object parseAnnoJson(Map<String, Object> argsMap, String bodyJson, Json json, Class<?> type) {
         String val = "";
         if (json.fromBody() && bodyJson != null && bodyJson.length() > 0) {
             val = bodyJson;
@@ -270,7 +271,7 @@ public class XyDispacher extends Thread {
         return null;
     }
 
-    private Object parseAnnoVar(Map<String, Object> argsMap, Class<?> type, Var var) {
+    private static Object parseAnnoVar(Map<String, Object> argsMap, Class<?> type, Var var) {
         if (null != var) {
             Object val = argsMap.get(var.value());
             Supplier<Object> call = toObject(type, val);
@@ -282,7 +283,7 @@ public class XyDispacher extends Thread {
         return null;
     }
 
-    private Supplier<Object> toObject(Class<?> type, Object o) {
+    private static Supplier<Object> toObject(Class<?> type, Object o) {
         return () -> {
             if (o.getClass() == type) {
                 return o;
@@ -321,7 +322,8 @@ public class XyDispacher extends Thread {
      */
     @Override
     public void run() {
-        runServer(port);
+        isRunDispacter = true;
+        runServer(this, port, HOST);
     }
 
     static class MappingDefinition {
