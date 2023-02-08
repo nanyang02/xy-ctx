@@ -421,12 +421,12 @@ public class XyDispacher extends Thread {
             }
 
             if (requestMapping != null) {
-                definition.setMapping(requestMapping.value());
+                definition.setMapping(concatPath(ifControllerMapping ? controllerMapping.value().trim() : "", requestMapping.value().trim()));
                 definition.setType(requestMapping.type());
             }
 
             if (restMapping != null) {
-                definition.setMapping(restMapping.value());
+                definition.setMapping(concatPath(ifControllerMapping ? controllerMapping.value().trim() : "", restMapping.value().trim()));
                 definition.setType(MsgType.JSON);
             }
 
