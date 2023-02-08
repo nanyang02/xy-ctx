@@ -40,8 +40,8 @@ public class XyDispacher extends Thread {
             new SynchronousQueue<Runnable>());
 
     private static ServerSocket serverSocket;
-    private int port = 8665;
-    private static String HOST = "0.0.0.0";
+    private int port = 8849;
+    private static String HOST = "localhost";
     private boolean isRunDispacter = false;
 
     private static Map<String, MappingDefinition> controllerMapping = new ConcurrentHashMap<>();
@@ -102,7 +102,7 @@ public class XyDispacher extends Thread {
         } catch (IOException e) {
             throw new RuntimeException("无法绑定服务端口", e);
         }
-        logger.info("Http Server Run At http://localhost:" + port);
+        logger.info("Http Server Run At http://" + HOST + ":" + port);
         while (!shutdown) {
             try {
                 submitTask(dispacher, serverSocket.accept());

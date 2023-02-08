@@ -122,7 +122,7 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
      * @param port
      */
     public void useWeb(Integer port) {
-        useWeb("127.0.0.1", port);
+        useWeb("localhost", port);
     }
 
     public void useWeb(String host, Integer port) {
