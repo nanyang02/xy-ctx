@@ -66,6 +66,11 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder select(boolean ifOk, String column) {
+        if (ifOk) select(column);
+        return this;
+    }
+
     public SelectBuilder count() {
         if (gStep > 0) throw new RuntimeException("Sql构建出错，select count(1) 之前不能有其他查询");
         doSelect("count(1)");
@@ -87,13 +92,33 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder orderAsc(boolean ifOk, String column) {
+        if (ifOk) orderAsc(column);
+        return this;
+    }
+
     public SelectBuilder orderDesc(String column) {
         doOrder(column_prefix + column, false, true);
         return this;
     }
 
+    public SelectBuilder orderDesc(boolean ifOk, String column) {
+        if (ifOk) orderDesc(column);
+        return this;
+    }
+
     public SelectBuilder order(String column) {
         doOrder(column_prefix + column, false, false);
+        return this;
+    }
+
+    public SelectBuilder order(boolean ifOk, String column) {
+        if (ifOk) order(column);
+        return this;
+    }
+
+    public SelectBuilder join(boolean ifOk, String sql) {
+        if (ifOk) doJoin(sql);
         return this;
     }
 
@@ -104,6 +129,11 @@ public class SelectBuilder extends AbsSqlBuilder {
 
     public SelectBuilder ljoin(String tb, String tbColumn, String relateColumn, String alias) {
         doJoin("left join " + tb + " " + alias + " on " + alias + "." + tbColumn + " = " + column_prefix + relateColumn);
+        return this;
+    }
+
+    public SelectBuilder ljoin(boolean ifOk, String tb, String tbColumn, String relateColumn, String alias) {
+        if (ifOk) ljoin(tb, tbColumn, relateColumn, alias);
         return this;
     }
 
@@ -214,6 +244,16 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder where(boolean ifOk, String sql) {
+        if (ifOk) where(sql);
+        return this;
+    }
+
+    public SelectBuilder where(boolean ifOk, String column, Object arg) {
+        if (ifOk) where(column, arg);
+        return this;
+    }
+
     public SelectBuilder byId(Object arg) {
         return where(column_prefix + "id", arg);
     }
@@ -223,8 +263,18 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder llike(boolean ifOk, String column, String keyword) {
+        if (ifOk) llike(column, keyword);
+        return this;
+    }
+
     public SelectBuilder rlike(String column, String keyword) {
         doWhereSingle(column_prefix + column + " like '" + keyword + "%'");
+        return this;
+    }
+
+    public SelectBuilder rlike(boolean ifOk, String column, String keyword) {
+        if (ifOk) rlike(column, keyword);
         return this;
     }
 
@@ -233,4 +283,8 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder blike(boolean ifOk, String column, String keyword) {
+        if (ifOk) blike(column, keyword);
+        return this;
+    }
 }
