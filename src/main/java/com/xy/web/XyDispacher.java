@@ -193,7 +193,9 @@ public class XyDispacher extends Thread {
             if (parameterAnnotations[i].length > 0) {
                 Annotation first = parameterAnnotations[i][0];
                 if (first.annotationType() == Json.class) {
-                    args[i] = parseAnnoJson(argsMap, request.getRequestParams().getBodyJson(), (Json) first, type);
+                    String bodyJson = request.getRequestParams().getBodyJson();
+                    if (null != bodyJson && bodyJson.length() > 0)
+                        args[i] = parseAnnoJson(argsMap, bodyJson, (Json) first, type);
                 } else if (first.annotationType() == Var.class) {
                     args[i] = parseAnnoVar(argsMap, type, (Var) first);
                 }
@@ -250,14 +252,16 @@ public class XyDispacher extends Thread {
 
     private static Object parseAnnoJson(Map<String, Object> argsMap, String bodyJson, Json json, Class<?> type) {
         String val = "";
-        if (json.fromBody() && bodyJson != null && bodyJson.length() > 0) {
+        if (json.value().length() > 0) {
+            JSONObject jsonObject = JSON.parseObject(bodyJson);
+            Object o = jsonObject.get(json.value());
+            val = o.toString();
+        } else if (json.fromBody()) {
             val = bodyJson;
-        } else {
-            if (json.value().trim().length() > 0) {
-                Object v = argsMap.get(json.value());
-                if (v instanceof String) {
-                    val = (String) v;
-                }
+        } else if (json.fromFormDataParam().trim().length() > 0) {
+            Object v = argsMap.get(json.fromFormDataParam());
+            if (v instanceof String) {
+                val = (String) v;
             }
         }
         if (!"".equals(val)) {

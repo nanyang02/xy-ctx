@@ -191,36 +191,6 @@ public class Request {
                 break;
             }
 
-//            do {
-//                read = input.read(buffer);
-//                if (read > -1) {
-//                    // 读取从缓存中获取到的2k数据
-//                    for (int j = 0; j < read; j++) {
-//                        if (!hadParseHeader) {
-//                            rnrn[0] = buffer[j];
-//                            rnrn[1] = buffer[j + 1];
-//                            rnrn[2] = buffer[j + 2];
-//                            rnrn[3] = buffer[j + 3];
-//
-//                            if (isNewPart(rnrn)) {
-//                                hadParseHeader = true;
-//                                doParseHeaderPart(requestParams, request.toString());
-//                                request.delete(0, j);
-//                                // 跳过header头最后一个的 \n\r\n, 注意j本身就是 \r
-//                                j = j + 3;
-//                            }
-//                            char c = (char) buffer[j];
-//                            request.append(c);
-//                        } else {
-//                            // 数据的时候走这里
-//                            if (dataList.size() > maxDataLimit) throw new RuntimeException(
-//                                    "Too Long Request Data Length, max length is " + maxDataLimit + " byte");
-//                            else dataList.addLast(buffer[j]);
-//                        }
-//                    }
-//                }
-//            } while (read == buffer.length);// 这里存在一个风险就是刚刚好满字节，但是出现的可能性及其低，
-            // 我们忽略。首先，我们的初始容量需要足够避免出现这样的问题
         } catch (IOException e) {
             logger.warn(e.getMessage(), e);
         }

@@ -6,6 +6,7 @@ import com.xy.builder.dto.ParIndexBo;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * 实现更新的简单构建
@@ -249,8 +250,8 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
-    public SelectBuilder where(boolean ifOk, String column, Object arg) {
-        if (ifOk) where(column, arg);
+    public SelectBuilder where(boolean ifOk, String column, Supplier<Object> arg) {
+        if (ifOk) where(column, arg.get());
         return this;
     }
 
@@ -263,8 +264,8 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
-    public SelectBuilder llike(boolean ifOk, String column, String keyword) {
-        if (ifOk) llike(column, keyword);
+    public SelectBuilder llike(boolean ifOk, String column, Supplier<String> keyword) {
+        if (ifOk) llike(column, keyword.get());
         return this;
     }
 
@@ -273,8 +274,8 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
-    public SelectBuilder rlike(boolean ifOk, String column, String keyword) {
-        if (ifOk) rlike(column, keyword);
+    public SelectBuilder rlike(boolean ifOk, String column, Supplier<String> keyword) {
+        if (ifOk) rlike(column, keyword.get());
         return this;
     }
 
@@ -283,8 +284,8 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
-    public SelectBuilder blike(boolean ifOk, String column, String keyword) {
-        if (ifOk) blike(column, keyword);
+    public SelectBuilder blike(boolean ifOk, String column, Supplier<String> keyword) {
+        if (ifOk) blike(column, keyword.get());
         return this;
     }
 }

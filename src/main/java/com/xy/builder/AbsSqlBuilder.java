@@ -133,7 +133,7 @@ public abstract class AbsSqlBuilder {
     public void doLimit(int offset, int length) {
         if (overStep(STEPT_LIMIT)) throw new RuntimeException("Sql构建出错 where 不能出现在 order by 和 limit 后面，请调整sql构建的顺序");
         // 放在 order 里面就好
-        order.append(" limit ").append(offset).append(", ").append(length);
+        order.append(" limit ?, ?");
         args.add(new ParIndexBo().setIndex(index++).setData(offset));
         args.add(new ParIndexBo().setIndex(index++).setData(length));
     }
