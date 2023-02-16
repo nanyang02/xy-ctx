@@ -240,6 +240,11 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder whereIgNull(String column, Object arg) {
+        if (null == arg) return this;
+        return where(column, arg);
+    }
+
     public SelectBuilder where(String column, Object arg) {
         doWhere(column_prefix + column, arg);
         return this;

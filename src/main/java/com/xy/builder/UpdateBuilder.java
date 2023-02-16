@@ -2,6 +2,8 @@ package com.xy.builder;
 
 import com.alibaba.fastjson.JSON;
 
+import java.util.function.Supplier;
+
 /**
  * 实现更新的简单构建
  */
@@ -45,6 +47,21 @@ public class UpdateBuilder extends AbsSqlBuilder {
 
     public UpdateBuilder where(String sql) {
         doWhereSingle(sql);
+        return this;
+    }
+
+    public UpdateBuilder whereIgNull(String column, Object arg) {
+        if (null == arg) return this;
+        return where(column, arg);
+    }
+
+    public UpdateBuilder where(boolean ifOk, String sql) {
+        if (ifOk) where(sql);
+        return this;
+    }
+
+    public UpdateBuilder where(boolean ifOk, String column, Supplier<Object> arg) {
+        if (ifOk) where(column, arg.get());
         return this;
     }
 

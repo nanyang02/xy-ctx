@@ -255,7 +255,8 @@ public class XyDispacher extends Thread {
         if (json.value().length() > 0) {
             JSONObject jsonObject = JSON.parseObject(bodyJson);
             Object o = jsonObject.get(json.value());
-            val = o.toString();
+            if (null != o)
+                val = o.toString();
         } else if (json.fromBody()) {
             val = bodyJson;
         } else if (json.fromFormDataParam().trim().length() > 0) {

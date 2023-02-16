@@ -133,6 +133,11 @@ public class ConvertResultSetToEntity {
                 try {
 
                     MethodEntity methodEntity = methods.get(strMethodKey);
+
+                    if (null == methodEntity) {
+                        continue;
+                    }
+
                     String methodName = methodEntity.getMethodName();
                     int repeatMethodNum = methodEntity.getRepeatMethodNum();
                     Class[] paramTypes = methodEntity.getMethodParamTypes();

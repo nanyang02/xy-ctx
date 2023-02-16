@@ -37,6 +37,11 @@ public class InsertBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public InsertBuilder insertIgNull(String column, Object arg) {
+        if (null == arg) return this;
+        return insert(column, arg);
+    }
+
     @Override
     public String getPreSql() {
         String psql = getSql().toString() + getWhere().toString() + ")";

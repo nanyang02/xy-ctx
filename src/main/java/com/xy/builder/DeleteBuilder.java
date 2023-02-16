@@ -2,6 +2,8 @@ package com.xy.builder;
 
 import com.alibaba.fastjson.JSON;
 
+import java.util.function.Supplier;
+
 /**
  * 实现更新的简单构建
  */
@@ -35,6 +37,21 @@ public class DeleteBuilder extends AbsSqlBuilder {
 
     public DeleteBuilder where(String sql) {
         doWhereSingle(sql);
+        return this;
+    }
+
+    public DeleteBuilder whereIgNull(String column, Object arg) {
+        if (null == arg) return this;
+        return where(column, arg);
+    }
+
+    public DeleteBuilder where(boolean ifOk, String sql) {
+        if (ifOk) where(sql);
+        return this;
+    }
+
+    public DeleteBuilder where(boolean ifOk, String column, Supplier<Object> arg) {
+        if (ifOk) where(column, arg.get());
         return this;
     }
 
