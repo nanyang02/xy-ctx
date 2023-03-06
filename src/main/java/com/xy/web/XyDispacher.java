@@ -388,7 +388,7 @@ public class XyDispacher extends Thread {
             if (b.length() > 1 && '/' == b.charAt(b.length() - 1)) b = b.substring(0, b.length() - 1);
         }
 
-        if ('/' != e.charAt(0)) e = '/' + e;
+        if (e.length() > 0 && '/' != e.charAt(0)) e = '/' + e;
         return b + e;
     }
 

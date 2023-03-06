@@ -67,6 +67,11 @@ public class SelectBuilder extends AbsSqlBuilder {
         return this;
     }
 
+    public SelectBuilder select(String column, String alias) {
+        doSelect(column_prefix + column + " as " + alias);
+        return this;
+    }
+
     public SelectBuilder select(boolean ifOk, String column) {
         if (ifOk) select(column);
         return this;
