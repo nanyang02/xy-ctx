@@ -31,18 +31,21 @@ import java.util.function.Supplier;
  * @author yangnan 2022/11/17 19:35
  * @since 1.8
  */
-public class XyDispacher extends Thread {
+public class XyDispatcher extends Thread {
 
-    private static final Logger logger = LoggerFactory.getLogger(XyDispacher.class);
+    private static final Logger logger = LoggerFactory.getLogger(XyDispatcher.class);
 
+    /**
+     * Core Thread - pool for accept client connect server and handle message.
+     */
     private static ExecutorService pool = new ThreadPoolExecutor(5, 50,
             60L, TimeUnit.SECONDS,
-            new SynchronousQueue<Runnable>());
+            new SynchronousQueue<>());
 
     private static ServerSocket serverSocket;
     private int port = 8849;
     private static String HOST = "localhost";
-    private boolean isRunDispacter = false;
+    private boolean isRunDispatcher = false;
 
     private static Map<String, MappingDefinition> controllerMapping = new ConcurrentHashMap<>();
 
@@ -51,7 +54,7 @@ public class XyDispacher extends Thread {
     }
 
     public void setHost(String host) {
-        if (!isRunDispacter) HOST = host;
+        if (!isRunDispatcher) HOST = host;
         else logger.warn("Web Server Had Running, So can't change the bind Host!");
     }
 
@@ -94,9 +97,9 @@ public class XyDispacher extends Thread {
     /**
      * 基本思路： 采用单个线程来完成服务接受，然后用线程池来完成服务的响应
      *
-     * @param port
+     * @param port port
      */
-    public static void runServer(XyDispacher dispacher, int port, String host) {
+    public static void runServer(XyDispatcher dispatcher, int port, String host) {
         try {
             serverSocket = new ServerSocket(port, 1, InetAddress.getByName(host));
         } catch (IOException e) {
@@ -105,7 +108,7 @@ public class XyDispacher extends Thread {
         logger.info("Http Server Run At http://" + HOST + ":" + port);
         while (!shutdown) {
             try {
-                submitTask(dispacher, serverSocket.accept());
+                submitTask(dispatcher, serverSocket.accept());
             } catch (Exception e) {
                 logger.error("无法建立客户端请求", e);
             }
@@ -122,10 +125,16 @@ public class XyDispacher extends Thread {
         logger.info("-- The End --");
     }
 
-    private static void submitTask(final XyDispacher dispacher, final Socket cli) {
+    /**
+     * 接收客户端的连接，我们可以考虑将这个socket和连接绑定在一起，这样后续方便取出socket
+     *
+     * @param dispatcher dispatcher
+     * @param cli        client socket
+     */
+    private static void submitTask(final XyDispatcher dispatcher, final Socket cli) {
         // 客户端，由线程池来完成新消息的处理
         pool.submit(() -> {
-            Request request = new Request(dispacher);
+            Request request = new Request(dispatcher);
             try {
                 // create Request object and parse
                 request.setInput(cli.getInputStream());
@@ -156,7 +165,7 @@ public class XyDispacher extends Thread {
 
                     doHandeApi(request, response);
                 } else {
-                    doHandeStaticResource(response);
+                    doHandleStaticResource(response);
                 }
             } catch (Exception e) {
                 logger.error("无法建立客户端请求", e);
@@ -173,7 +182,7 @@ public class XyDispacher extends Thread {
         });
     }
 
-    private static void doHandeStaticResource(Response response) {
+    private static void doHandleStaticResource(Response response) {
         response.sendStaticResource();
     }
 
@@ -327,15 +336,23 @@ public class XyDispacher extends Thread {
      */
     @Override
     public void run() {
-        isRunDispacter = true;
+        isRunDispatcher = true;
         runServer(this, port, HOST);
     }
 
+    /**
+     * 一个controller的一个mapping接口的定义信息
+     */
     static class MappingDefinition {
+        // 消息类型：JSON, PLAIN, HTML
         private MsgType type;
+        // 匹配的url
         private String mapping;
+        // 所在的controller的字节码文件
         private Class<?> controllerClass;
+        // 所对应的方法
         private Method mappingMethod;
+        // 对应方法回调函数
         private Function<Object[], Object> call;
 
         public MsgType getType() {
@@ -392,6 +409,11 @@ public class XyDispacher extends Thread {
         return b + e;
     }
 
+    /**
+     * 添加一个控制层的映射，自动解析放入到map中
+     *
+     * @param controller 控制器
+     */
     public void addMapping(Object controller) {
         Method[] methods = controller.getClass().getMethods();
 
@@ -409,6 +431,9 @@ public class XyDispacher extends Thread {
 
             if (null == requestMapping && null == restMapping && null == mapping) continue;
 
+            /*
+             * 定义一个api的基本定义信息，包含了uri，method，controllerClass返回值是不是json
+             */
             MappingDefinition definition = new MappingDefinition();
             definition.setCall(args -> {
                 try {
@@ -441,7 +466,8 @@ public class XyDispacher extends Thread {
                 definition.setType(MsgType.JSON);
             }
 
-            this.controllerMapping.put(definition.getMapping(), definition);
+            // 放入到map中备用
+            XyDispatcher.controllerMapping.put(definition.getMapping(), definition);
         }
     }
 }

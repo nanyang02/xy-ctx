@@ -5,7 +5,7 @@ import com.xy.beans.BeanDefine;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
 import com.xy.stereotype.Controller;
-import com.xy.web.XyDispacher;
+import com.xy.web.XyDispatcher;
 import com.xy.web.annotation.EnableWeb;
 
 import java.util.HashSet;
@@ -19,13 +19,13 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     private final BeanFactory beanFactory = new BeanFactory(getApplicationContext());
 
-    private final XyDispacher dispacher = new XyDispacher();
+    private final XyDispatcher dispatcher = new XyDispatcher();
 
     private static boolean useDebug = false;
 
     public void webDispatcherJoin() {
         try {
-            dispacher.join();
+            dispatcher.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -126,8 +126,8 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
     }
 
     public void useWeb(String host, Integer port) {
-        if (null != port) dispacher.setPort(port);
-        if (null != host) dispacher.setHost(host);
+        if (null != port) dispatcher.setPort(port);
+        if (null != host) dispatcher.setHost(host);
         useWeb();
     }
 
@@ -138,14 +138,14 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
             if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
             boolean add = controllerClassList.add(value.getTargetClass());
             if (add) {
-                dispacher.addMapping(getBean(value.getTargetClass()));
+                dispatcher.addMapping(getBean(value.getTargetClass()));
             }
         }
     }
 
     public void useWeb() {
         loadControllerMapping();
-        dispacher.start();
+        dispatcher.start();
         webDispatcherJoin();
     }
 
@@ -154,8 +154,8 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
      *
      * @param dispacherConsumer
      */
-    public void useWebBeforeStart(Consumer<XyDispacher> dispacherConsumer) {
-        dispacherConsumer.accept(dispacher);
+    public void useWebBeforeStart(Consumer<XyDispatcher> dispacherConsumer) {
+        dispacherConsumer.accept(dispatcher);
     }
 
     public void useWeb(Class<?> c) {

@@ -22,7 +22,7 @@ public class Request {
     private InputStream input;
 
     private RequestParams requestParams;
-    private XyDispacher dispacher;
+    private XyDispatcher dispacher;
     private Cookie cookie = new Cookie();
     private RequestHeader requestHeader = new RequestHeader();
     private ResponseHeader responseHeader = new ResponseHeader();
@@ -70,7 +70,7 @@ public class Request {
         return cookie;
     }
 
-    public Request(XyDispacher dispacher) {
+    public Request(XyDispatcher dispacher) {
         this.dispacher = dispacher;
         this.requestParams = RequestParams.getInstace();
     }
@@ -358,8 +358,8 @@ public class Request {
         }
         protocolVersion = base[2].trim();
 
-        if (pathname.equals(XyDispacher.SHUTDOWN_COMMAND)) {
-            XyDispacher.shutdown = true;
+        if (pathname.equals(XyDispatcher.SHUTDOWN_COMMAND)) {
+            XyDispatcher.shutdown = true;
             logger.info("Checked Shutdown Command, Return!");
             return;
         }
