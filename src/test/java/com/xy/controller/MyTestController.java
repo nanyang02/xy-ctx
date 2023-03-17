@@ -1,6 +1,6 @@
 package com.xy.controller;
 
-import com.xy.stereotype.Controller;
+import kz.greetgo.stereotype.Controller;
 import com.xy.web.UploadFile;
 import com.xy.web.annotation.*;
 

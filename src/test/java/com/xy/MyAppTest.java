@@ -1,19 +1,6 @@
 package com.xy;
 
-import com.xy.beans.BeanGetter;
-import com.xy.context.annotation.Autowired;
-import com.xy.context.annotation.Dependency;
-import com.xy.context.annotation.Qualifier;
-import com.xy.ext.MyBatisAppContext;
-import com.xy.mappper.UserDao;
-import com.xy.service.MyService;
-import com.xy.stereotype.ComponentScan;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.UnsupportedEncodingException;
-import java.util.Date;
+import kz.greetgo.stereotype.ComponentScan;
 
 /**
  * Class <code>com.xy.MyAppTest</code>

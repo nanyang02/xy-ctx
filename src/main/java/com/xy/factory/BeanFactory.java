@@ -6,17 +6,20 @@ import com.xy.beans.BeansException;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
 import com.xy.context.annotation.*;
-import com.xy.stereotype.Component;
-import com.xy.stereotype.ComponentScan;
-import com.xy.stereotype.Controller;
-import com.xy.stereotype.Service;
+import kz.greetgo.stereotype.Component;
+import kz.greetgo.stereotype.ComponentScan;
+import kz.greetgo.stereotype.Controller;
+import kz.greetgo.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 先不做三级缓存,也就是不用AOP增强,采用二级缓存的方式来实现一般的服务类的创建和支持
@@ -52,6 +55,10 @@ public class BeanFactory {
     @SuppressWarnings("all")
     private static <T> T cast(Object o) {
         return (T) o;
+    }
+
+    public List<BeanDefine> getDefinitions() {
+        return new ArrayList<>(definitions.values());
     }
 
     /**
@@ -389,17 +396,18 @@ public class BeanFactory {
             boolean isAw = DiType.isAutowired(diType);
             String signature = isBg ? getBgSignature(fd) : isAw ? getAutowiredSignature(fd) : null;
 
+            // 如果有别名指定，优先使用
+            Qualifier qualifier = fd.getAnnotation(Qualifier.class);
+            if (null != qualifier && qualifier.value().length() > 0) {
+                signature = qualifier.value();
+            }
+
             Object diBean = singletonObjects.getOrDefault(signature, null);
             if (null == diBean) {
                 // 从二级缓存中获取半成品
                 diBean = earlySingletonObjects.getOrDefault(signature, null);
                 // 如果没有bean的define
                 if (null == diBean) {
-
-                    Qualifier qualifier = fd.getAnnotation(Qualifier.class);
-                    if (null != qualifier && qualifier.value().length() > 0) {
-                        signature = qualifier.value();
-                    }
 
                     if (definitions.containsKey(signature)) {
                         BeanDefine define = definitions.get(signature);
@@ -559,7 +567,7 @@ public class BeanFactory {
                         for (Class<?> anInterface : klass.getInterfaces()) {
                             // 前缀相同的则建立关联
                             if (klass.getSimpleName().startsWith(anInterface.getSimpleName())
-                        || klass.getSimpleName().endsWith(anInterface.getSimpleName())) {
+                                    || klass.getSimpleName().endsWith(anInterface.getSimpleName())) {
                                 regBeanDefinition(klass, anInterface);
                             }
                         }

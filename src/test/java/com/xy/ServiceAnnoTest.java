@@ -1,11 +1,9 @@
 package com.xy;
 
 import com.xy.context.annotation.Autowired;
-import com.xy.ext.MyBatisAppContext;
-import com.xy.mappper.UserDao;
 import com.xy.service.MyService;
 import com.xy.service.MyService2;
-import com.xy.stereotype.ComponentScan;
+import kz.greetgo.stereotype.ComponentScan;
 import org.junit.Test;
 
 /**

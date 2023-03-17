@@ -2,6 +2,8 @@ package com.xy.web;
 
 import com.xy.factory.ApplicationDefaultContext;
 import com.xy.web.cookie.Cookie;
+import com.xy.web.core.RequestHolder;
+import com.xy.web.core.XyDispatcher;
 import com.xy.web.header.RequestHeader;
 import com.xy.web.header.ResponseHeader;
 import com.xy.web.session.Session;
@@ -12,7 +14,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Request {
@@ -22,7 +23,7 @@ public class Request {
     private InputStream input;
 
     private RequestParams requestParams;
-    private XyDispatcher dispacher;
+    private RequestHolder holder;
     private Cookie cookie = new Cookie();
     private RequestHeader requestHeader = new RequestHeader();
     private ResponseHeader responseHeader = new ResponseHeader();
@@ -70,13 +71,10 @@ public class Request {
         return cookie;
     }
 
-    public Request(XyDispatcher dispacher) {
-        this.dispacher = dispacher;
+    public Request(RequestHolder holder, InputStream in) {
+        this.input = in;
+        this.holder = holder;
         this.requestParams = RequestParams.getInstace();
-    }
-
-    public void setInput(InputStream input) {
-        this.input = input;
     }
 
     private static final String NEW_LINE_DELI = "\r\n";
@@ -197,7 +195,7 @@ public class Request {
 
         if ("GET".equals(requestParams.getMethod())) {
             try {
-                doParseGet(requestParams);
+                WebUtil.doParseGet(requestParams);
             } catch (Exception e) {
                 logger.error("Get 请求解析出错", e);
             }
@@ -344,7 +342,6 @@ public class Request {
 
 
     private void doParseHeaderPart(RequestParams instace, String headerStr) {
-
         originHeaderStr = headerStr;
         String[] headerArr = headerStr.split(NEW_LINE_DELI);
         String[] base = headerArr[0].split(" ");
@@ -392,8 +389,13 @@ public class Request {
                 // 将cookie里面的参数对进行解析放入到请求头的Cookie中
                 map.forEach((key, value) -> requestHeader.getCookie().addCookie(key, value));
 
-                String jsessionid = map.get("JSESSIONID");
-                doCreateSessionIfAbsent(instace, jsessionid);
+                String jSessionId = map.get("JSESSIONID");
+                boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
+                if(!had) {
+                    Session session = holder.createSession();
+                    holder.registerSession(session);
+                    responseHeader.addHeader("JSESSIONID", session.getJSessionId());
+                }
             } else if ("content-length".equals(headerKey)) {
                 contentLength = Long.parseLong(headerValue);
             }
@@ -412,60 +414,6 @@ public class Request {
             }
         }
         return map;
-    }
-
-    private void doCreateSessionIfAbsent(RequestParams instace, String jSessionId) {
-        // 解析Cooket获取JsessionId
-        Session session = Session.create(jSessionId);
-        boolean hasSession = false;
-        Map<String, Session> map = dispacher.getSessionMap();
-        Iterator<Session> iterator = map.values().iterator();
-        List<String> removeKeys = new ArrayList<>();
-        while (iterator.hasNext()) {
-            Session next = iterator.next();
-            if (next.hasExpired()) {
-                removeKeys.add(next.getJSessionId());
-            } else {
-                if (!hasSession && next.equals(session)) {
-                    hasSession = true;
-                    // 重设过期时间
-                    next.setExpired(30 * 60 * 1000);
-                }
-            }
-        }
-        if (removeKeys.size() > 0) {
-            for (String removeKey : removeKeys) {
-                map.remove(removeKey);
-            }
-        }
-        // 如果没有，则新建一个
-        if (!hasSession) {
-            // 设置过期时间半个小时
-            session.setExpired(30 * 60 * 1000);
-            map.put(session.getJSessionId(), session);
-            responseHeader.addHeader("JSESSIONID", session.getJSessionId());
-        }
-    }
-
-    private void doParseGet(RequestParams instace) throws UnsupportedEncodingException {
-        String url = URLDecoder.decode(instace.getPath(), "UTF-8");
-        int i = url.indexOf("?");
-        if (i != -1) {
-            instace.setPath(url.substring(0, i));
-            if (url.length() > (i + 1)) {
-                String[] kvarr = url.substring(i + 1).split("&");
-                for (String s : kvarr) {
-                    String[] kv = s.split("=");
-                    if (kv.length > 1) {
-                        instace.getParams().put(kv[0], kv[1]);
-                    } else {
-                        instace.getParams().put(kv[0], "");
-                    }
-                }
-            }
-        } else {
-            instace.setPath(url);
-        }
     }
 
     public RequestParams getRequestParams() {

@@ -1,6 +1,6 @@
 package com.xy.sqlite3;
 
-import com.xy.builder.dto.ConvertResultSetToEntity;
+import kz.greetgo.context.builder.dto.ConvertResultSetToEntity;
 import com.xy.builder.RsSingleType;
 import com.xy.builder.XyJdbc;
 import com.xy.builder.DbType;

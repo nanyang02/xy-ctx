@@ -1,5 +1,7 @@
 package com.xy.web;
 
+import com.xy.web.core.RequestHolder;
+import com.xy.web.core.XyDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,20 +23,16 @@ public class Response {
     private static final Logger logger = LoggerFactory.getLogger(Response.class);
 
     private static final int BUFFER_SIZE = 1024;
-    Request request;
-    OutputStream output;
+    private OutputStream output;
+    private RequestHolder holder;
 
     enum HttpStatus {
         S200, S301, S302, S500
     }
 
-
-    public Response(OutputStream output) {
+    public Response(RequestHolder holder, OutputStream output) {
         this.output = output;
-    }
-
-    public void setRequest(Request request) {
-        this.request = request;
+        this.holder = holder;
     }
 
     public OutputStream getOutput() {
@@ -50,10 +48,10 @@ public class Response {
         FileInputStream fis = null;
         try {
             File file = null;
-            if (request.getPathname().equals("/")) {
+            if (holder.getPathName().equals("/")) {
                 file = new File(XyDispatcher.WEB_ROOT, "/" + INDEX_FILE);
             } else {
-                file = new File(XyDispatcher.WEB_ROOT, request.getPathname());
+                file = new File(XyDispatcher.WEB_ROOT, holder.getPathName());
             }
 
             // (file.getName());
@@ -127,13 +125,13 @@ public class Response {
 
     private void dyncAppendAndFlush(byte[] data, StringBuilder sb) throws IOException {
         // 如果有额外的cookie
-        if (!request.getCookie().isEmpty()) {
-            sb.append(request.getCookie().getSetCookieHeader()).append(newLine());
+        if (!holder.getCookie().isEmpty()) {
+            sb.append(holder.getCookie().getSetCookieHeader()).append(newLine());
         }
 
         // 如果有额外的响应头
-        if (!request.getResponseHeader().isEmpty()) {
-            sb.append(request.getResponseHeader().getHeaderStr()).append(newLine());
+        if (!holder.getResponseHeader().isEmpty()) {
+            sb.append(holder.getResponseHeader().getHeaderStr()).append(newLine());
         }
 
         // blank line between headers and content, very important !

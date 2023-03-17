@@ -1,7 +1,7 @@
 package com.xy.builder;
 
 import com.alibaba.fastjson.JSON;
-import com.xy.builder.dto.ParIndexBo;
+import kz.greetgo.context.builder.dto.ParIndexBo;
 
 import java.sql.SQLException;
 import java.util.Date;

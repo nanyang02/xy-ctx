@@ -10,27 +10,15 @@ import java.util.UUID;
 @Accessors(chain = true)
 public class Session {
 
-    final static String JSESSION_KEY = "JSESIIONID";
+    public final static String JSESSION_KEY = "JSESIIONID";
 
     // JSESIIONID
     private String jSessionId;
     // 默认设置为3分钟就失效了
     private long expiredMillis = 2 * 60 * 1000;
 
-    private Session(String sessionId) {
-        if (null != sessionId && !"".equals(sessionId.trim())) {
-            jSessionId = sessionId;
-        } else {
-            jSessionId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        }
-    }
-
-    public static Session create() {
-        return new Session(null);
-    }
-
-    public static Session create(String jSessionId) {
-        return new Session(jSessionId);
+    public Session() {
+        jSessionId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
     }
 
     public boolean hasExpired() {
@@ -41,7 +29,7 @@ public class Session {
         }
     }
 
-    public Session setExpired(int ms) {
+    public Session setExpired(long ms) {
         expiredMillis = System.currentTimeMillis() + ms;
         return this;
     }

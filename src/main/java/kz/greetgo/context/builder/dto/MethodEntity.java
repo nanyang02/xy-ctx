@@ -1,4 +1,4 @@
-package com.xy.builder.dto;
+package kz.greetgo.context.builder.dto;
 
 import java.util.ArrayList;
 import java.util.List;

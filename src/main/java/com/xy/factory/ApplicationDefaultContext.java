@@ -1,16 +1,11 @@
 package com.xy.factory;
 
 
-import com.xy.beans.BeanDefine;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
-import com.xy.stereotype.Controller;
-import com.xy.web.XyDispatcher;
 import com.xy.web.annotation.EnableWeb;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Consumer;
+import com.xy.web.core.WebContext;
+import com.xy.web.filter.Filter;
 
 /**
  * bean容器实现类, 提供具体的容器的注册和获取bean的基本功能
@@ -19,16 +14,26 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     private final BeanFactory beanFactory = new BeanFactory(getApplicationContext());
 
-    private final XyDispatcher dispatcher = new XyDispatcher();
+    private final WebContext webContext = new WebContext(beanFactory);
 
     private static boolean useDebug = false;
 
-    public void webDispatcherJoin() {
-        try {
-            dispatcher.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    public void setApiCtxPath(String path) {
+        if (null != path) {
+            webContext.setContextPath(path);
         }
+    }
+
+    public void registerFilter(Filter filter) {
+        webContext.registerFilter(filter);
+    }
+
+    public void registerFilter(String beanName) {
+        webContext.registerFilter((Filter) getBean(beanName));
+    }
+
+    public void registerFilter(Class<?> clazz) {
+        webContext.registerFilter((Filter) getBean(clazz));
     }
 
     /**
@@ -121,41 +126,23 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
      *
      * @param port
      */
-    public void useWeb(Integer port) {
-        useWeb("localhost", port);
-    }
-
-    public void useWeb(String host, Integer port) {
-        if (null != port) dispatcher.setPort(port);
-        if (null != host) dispatcher.setHost(host);
+    public void useWeb(int port) {
+        webContext.setPort(port);
         useWeb();
     }
 
-    private void loadControllerMapping() {
-        Set<Class<?>> controllerClassList = new HashSet<>();
-
-        for (BeanDefine value : beanFactory.definitions.values()) {
-            if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
-            boolean add = controllerClassList.add(value.getTargetClass());
-            if (add) {
-                dispatcher.addMapping(getBean(value.getTargetClass()));
-            }
-        }
+    public void useWeb(String host, int port) {
+        if (null == host) throw new RuntimeException("Host must not empty!");
+        webContext.setPort(port);
+        webContext.setHost(host);
+        useWeb();
     }
 
     public void useWeb() {
-        loadControllerMapping();
-        dispatcher.start();
-        webDispatcherJoin();
-    }
-
-    /**
-     * 提供在启用之前修改绑定的IP的支持
-     *
-     * @param dispacherConsumer
-     */
-    public void useWebBeforeStart(Consumer<XyDispatcher> dispacherConsumer) {
-        dispacherConsumer.accept(dispatcher);
+        // web ctx init
+        webContext.init();
+        // start server thread
+        webContext.start();
     }
 
     public void useWeb(Class<?> c) {

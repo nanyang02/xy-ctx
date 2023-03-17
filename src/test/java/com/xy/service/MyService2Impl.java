@@ -2,7 +2,7 @@ package com.xy.service;
 
 import com.xy.config.RedisConfig;
 import com.xy.context.annotation.Autowired;
-import com.xy.stereotype.Service;
+import kz.greetgo.stereotype.Service;
 
 /**
  * Class <code>MyService2Impl</code>
