@@ -6,10 +6,10 @@ import com.xy.beans.BeansException;
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
 import com.xy.context.annotation.*;
-import kz.greetgo.stereotype.Component;
-import kz.greetgo.stereotype.ComponentScan;
-import kz.greetgo.stereotype.Controller;
-import kz.greetgo.stereotype.Service;
+import com.xy.stereotype.Component;
+import com.xy.stereotype.ComponentScan;
+import com.xy.stereotype.Controller;
+import com.xy.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 先不做三级缓存,也就是不用AOP增强,采用二级缓存的方式来实现一般的服务类的创建和支持

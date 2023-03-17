@@ -1,7 +1,7 @@
 package com.xy;
 
-import com.xy.builder.DbType;
-import com.xy.builder.XySqlFactory;
+import com.xy.ext.builder.DbType;
+import com.xy.ext.builder.XySqlFactory;
 import org.junit.Test;
 
 /**

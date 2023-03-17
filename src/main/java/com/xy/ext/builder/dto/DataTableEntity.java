@@ -1,4 +1,4 @@
-package kz.greetgo.context.builder.dto;
+package com.xy.ext.builder.dto;
 
 public class DataTableEntity {
 

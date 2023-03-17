@@ -1,6 +1,6 @@
-package com.xy.builder;
+package com.xy.ext.builder;
 
-import kz.greetgo.context.builder.dto.ParIndexBo;
+import com.xy.ext.builder.dto.ParIndexBo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

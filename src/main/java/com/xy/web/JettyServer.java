@@ -1,6 +1,6 @@
 //package com.xy.web;
 //
-//import kz.greetgo.stereotype.Component;
+//import com.xy.stereotype.Component;
 //import org.eclipse.jetty.server.Connector;
 //import org.eclipse.jetty.server.Server;
 //import org.eclipse.jetty.server.ServerConnector;

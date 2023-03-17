@@ -1,7 +1,7 @@
 package com.xy;
 
 import com.xy.context.annotation.Scope;
-import kz.greetgo.stereotype.Component;
+import com.xy.stereotype.Component;
 import lombok.Data;
 
 import static com.xy.context.annotation.ScopeType.prototype;

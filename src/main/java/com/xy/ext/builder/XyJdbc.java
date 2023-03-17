@@ -1,4 +1,4 @@
-package com.xy.builder;
+package com.xy.ext.builder;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

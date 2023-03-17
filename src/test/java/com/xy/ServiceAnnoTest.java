@@ -3,7 +3,7 @@ package com.xy;
 import com.xy.context.annotation.Autowired;
 import com.xy.service.MyService;
 import com.xy.service.MyService2;
-import kz.greetgo.stereotype.ComponentScan;
+import com.xy.stereotype.ComponentScan;
 import org.junit.Test;
 
 /**

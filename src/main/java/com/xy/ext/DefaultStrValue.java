@@ -1,6 +1,6 @@
 package com.xy.ext;
 
-import kz.greetgo.stereotype.Component;
+import com.xy.stereotype.Component;
 
 import java.lang.annotation.*;
 

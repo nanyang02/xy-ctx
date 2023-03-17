@@ -1,7 +1,7 @@
 package com.xy.simplecase;
 
 import com.xy.factory.ApplicationDefaultContext;
-import kz.greetgo.stereotype.Controller;
+import com.xy.stereotype.Controller;
 import com.xy.web.annotation.RequestMapping;
 import com.xy.web.annotation.RestMapping;
 import com.xy.web.annotation.Var;

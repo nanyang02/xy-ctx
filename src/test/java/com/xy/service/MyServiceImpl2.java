@@ -3,7 +3,7 @@ package com.xy.service;
 import com.xy.beans.BeansException;
 import com.xy.context.ApplicationContext;
 import com.xy.factory.ApplicationContextAware;
-import kz.greetgo.stereotype.Service;
+import com.xy.stereotype.Service;
 
 /**
  * Class <code>MyService</code>

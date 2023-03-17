@@ -1,6 +1,6 @@
 package com.xy;
 
-import kz.greetgo.stereotype.ComponentScan;
+import com.xy.stereotype.ComponentScan;
 
 /**
  * Class <code>com.xy.MyAppTest</code>

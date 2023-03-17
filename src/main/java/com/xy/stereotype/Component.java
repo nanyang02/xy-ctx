@@ -1,4 +1,4 @@
-package kz.greetgo.stereotype;
+package com.xy.stereotype;
 
 import java.lang.annotation.*;
 

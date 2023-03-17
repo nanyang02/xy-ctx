@@ -1,6 +1,6 @@
-package com.xy.builder;
+package com.xy.ext.builder;
 
-import com.xy.sqlite3.Sqlite3;
+import com.xy.ext.sqlite3.Sqlite3;
 
 /**
  * Class <code>XySqlFactory</code>

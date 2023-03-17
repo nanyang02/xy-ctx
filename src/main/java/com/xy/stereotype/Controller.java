@@ -1,11 +1,12 @@
-package kz.greetgo.stereotype;
+package com.xy.stereotype;
 
 import java.lang.annotation.*;
+
 
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Component
-public @interface Repository {
+public @interface Controller {
     String value() default "";
 }

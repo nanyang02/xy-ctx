@@ -1,4 +1,4 @@
-package kz.greetgo.context.builder.dto;
+package com.xy.ext.builder.dto;
 
 import java.lang.reflect.Method;
 import java.sql.ResultSet;

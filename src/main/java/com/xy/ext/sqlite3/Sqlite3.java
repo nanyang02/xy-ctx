@@ -1,9 +1,9 @@
-package com.xy.sqlite3;
+package com.xy.ext.sqlite3;
 
-import kz.greetgo.context.builder.dto.ConvertResultSetToEntity;
-import com.xy.builder.RsSingleType;
-import com.xy.builder.XyJdbc;
-import com.xy.builder.DbType;
+import com.xy.ext.builder.dto.ConvertResultSetToEntity;
+import com.xy.ext.builder.RsSingleType;
+import com.xy.ext.builder.XyJdbc;
+import com.xy.ext.builder.DbType;
 
 import java.sql.*;
 import java.util.ArrayList;
