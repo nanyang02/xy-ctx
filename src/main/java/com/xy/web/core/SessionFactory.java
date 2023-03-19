@@ -35,8 +35,8 @@ public class SessionFactory {
         return sessionMap.values().iterator();
     }
 
-    public Session createSession() {
-        Session session = new Session();
+    public Session createSession(String jSessionId) {
+        Session session = new Session(jSessionId);
         session.setExpired(expiredMs);
 
         // 每次创建的时候gc

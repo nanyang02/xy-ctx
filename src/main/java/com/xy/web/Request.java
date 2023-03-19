@@ -393,15 +393,20 @@ public class Request {
                 // 将cookie里面的参数对进行解析放入到请求头的Cookie中
                 map.forEach((key, value) -> requestHeader.getCookie().addCookie(key, value));
 
-                String jSessionId = map.get("JSESSIONID");
+                // 此处需要兼容一种特殊情况，客户端已经有JsessionId,此时需要不变
+                String jSessionId = map.get(Session.JSESSION_KEY);
+                if(null != jSessionId) {
+                    boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
+
+                }
                 boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
                 if (!had) {
-                    Session session = holder.createSession();
+                    Session session = holder.createSession(jSessionId);
                     // 注入session信息
                     holder.registerSession(session);
                     // holder 保持一下session
                     holder.setSession(session);
-                    responseHeader.addHeader("JSESSIONID", session.getJSessionId());
+                    responseHeader.addHeader(Session.JSESSION_KEY, session.getJSessionId());
                 } else {
                     holder.setSession(holder.getSession(jSessionId));
                 }

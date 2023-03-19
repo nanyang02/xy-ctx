@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Accessors(chain = true)
 public class Session {
 
-    public final static String JSESSION_KEY = "JSESIIONID";
+    public final static String JSESSION_KEY = "JSESSIONID";
 
     private Map<String, Object> attrMap = new ConcurrentHashMap<>();
 
@@ -22,8 +22,11 @@ public class Session {
     // 默认设置为3分钟就失效了
     private long expiredMillis = 2 * 60 * 1000;
 
-    public Session() {
-        jSessionId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    public Session(String jSessionId) {
+        if (null == jSessionId || "".equals(jSessionId))
+            jSessionId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        
+        this.jSessionId = jSessionId;
     }
 
     public boolean hasExpired() {

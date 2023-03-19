@@ -49,9 +49,9 @@ public class Response {
         try {
             File file = null;
             if (holder.getPathName().equals("/")) {
-                file = new File(XyDispatcher.WEB_ROOT, "/" + INDEX_FILE);
+                file = new File(holder.getWebRoot(), "/" + INDEX_FILE);
             } else {
-                file = new File(XyDispatcher.WEB_ROOT, holder.getPathName());
+                file = new File(holder.getWebRoot(), holder.getPathName());
             }
 
             // (file.getName());

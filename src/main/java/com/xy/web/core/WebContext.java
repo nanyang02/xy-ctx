@@ -1,10 +1,13 @@
 package com.xy.web.core;
 
 import com.xy.beans.BeanDefine;
+import com.xy.context.ApplicationContext;
+import com.xy.factory.ApplicationDefaultContext;
 import com.xy.factory.BeanFactory;
 import com.xy.web.filter.ApiFilter;
 import com.xy.web.filter.Filter;
 import com.xy.web.filter.FilterChainFactory;
+import com.xy.web.filter.ResFilter;
 import com.xy.web.session.Session;
 import com.xy.stereotype.Controller;
 
@@ -24,9 +27,14 @@ public class WebContext {
     private SessionFactory sessionFactory;
     private FilterChainFactory filterFactory;
     private XyDispatcher dispatcher;
+    private ApplicationDefaultContext defaultContext;
 
     private String contextPath = "", host = "localhost", webroot = "webroot";
     private int port = 8080;
+
+    public boolean enableDebugLog() {
+        return defaultContext.isUseDebug();
+    }
 
     enum Status {
         OFF, RUNNING, INITED
@@ -34,16 +42,8 @@ public class WebContext {
 
     private Status status = Status.OFF;
 
-    public WebContext(BeanFactory beanFactory) {
-        Set<Class<?>> controllerClassList = new HashSet<>();
-
-        for (BeanDefine value : beanFactory.getDefinitions()) {
-            if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
-            boolean add = controllerClassList.add(value.getTargetClass());
-            if (add) {
-                parseController(beanFactory.getBean(value.getTargetClass()));
-            }
-        }
+    public WebContext(ApplicationDefaultContext ctx) {
+        defaultContext = ctx;
     }
 
     public void setPort(int port) {
@@ -77,9 +77,9 @@ public class WebContext {
         sessionFactory.registerSession(session);
     }
 
-    public Session createSession() {
+    public Session createSession(String jSessionId) {
         init();
-        return sessionFactory.createSession();
+        return sessionFactory.createSession(jSessionId);
     }
 
     public boolean hasSessionIfabsentReflush(String jSessionId) {
@@ -116,11 +116,26 @@ public class WebContext {
             dispatcher.setWebRoot(webroot);
             // beore start, add api filter to web server
             filterFactory.register(new ApiFilter().setFactory(filterFactory));
+            // static resource add first
+            filterFactory.register(0, new ResFilter().setFactory(filterFactory));
             status = Status.RUNNING;
+            registerControllerMapping();
             dispatcher.start();
             dispatcher.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void registerControllerMapping() {
+        Set<Class<?>> controllerClassList = new HashSet<>();
+
+        for (BeanDefine value : defaultContext.getBeanFactory().getDefinitions()) {
+            if (value.getTargetClass().getAnnotation(Controller.class) == null) continue;
+            boolean add = controllerClassList.add(value.getTargetClass());
+            if (add) {
+                parseController(defaultContext.getBeanFactory().getBean(value.getTargetClass()));
+            }
         }
     }
 

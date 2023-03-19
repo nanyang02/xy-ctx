@@ -74,10 +74,15 @@ public class WebUtil {
             }
         }
         if (!"".equals(val)) {
-            try {
-                return JSON.parseObject(val, type);
-            } catch (Exception e) {
-                throw new RuntimeException("Json [" + type.getName() + "] Parse Error: " + e.getMessage());
+            // check if arr or json
+            if (val.contains("{")) {
+                try {
+                    return JSON.parseObject(val, type);
+                } catch (Exception e) {
+                    throw new RuntimeException("Json [" + type.getName() + "] Parse Error: " + e.getMessage());
+                }
+            } else {
+                return val;
             }
         }
 

@@ -4,7 +4,6 @@ import com.xy.web.Request;
 import com.xy.web.Response;
 import com.xy.web.cookie.Cookie;
 import com.xy.web.exceptions.ParseRequestParamsException;
-import com.xy.web.header.RequestHeader;
 import com.xy.web.header.ResponseHeader;
 import com.xy.web.session.Session;
 
@@ -72,8 +71,8 @@ public class RequestHolder {
         return dispatcher.hasSessionIfAbsentReflush(jSessionId);
     }
 
-    public Session createSession() {
-        return dispatcher.createSession();
+    public Session createSession(String jSessionId) {
+        return dispatcher.createSession(jSessionId);
     }
 
     public Cookie getCookie() {
@@ -82,5 +81,9 @@ public class RequestHolder {
 
     public ResponseHeader getResponseHeader() {
         return request.getResponseHeader();
+    }
+
+    public String getWebRoot() {
+        return dispatcher.getWebRoot();
     }
 }

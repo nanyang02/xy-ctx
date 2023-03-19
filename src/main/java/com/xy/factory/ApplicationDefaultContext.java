@@ -14,9 +14,13 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     private final BeanFactory beanFactory = new BeanFactory(getApplicationContext());
 
-    private final WebContext webContext = new WebContext(beanFactory);
+    private final WebContext webContext = new WebContext(this);
 
     private static boolean useDebug = false;
+
+    public BeanFactory getBeanFactory() {
+        return beanFactory;
+    }
 
     public void setApiCtxPath(String path) {
         if (null != path) {
@@ -160,5 +164,9 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     public void enableDebugLog(boolean b) {
         useDebug = b;
+    }
+
+    public boolean isUseDebug() {
+        return useDebug;
     }
 }

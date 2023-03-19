@@ -58,6 +58,10 @@ public class XyDispatcher extends Thread {
         WEB_PATH = webRoot;
     }
 
+    public String getWebRoot() {
+        return System.getProperty("user.dir") + File.separator + WEB_PATH;
+    }
+
     public void registerSession(Session session) {
         fFactory.getWebContext().registerSession(session);
     }
@@ -70,17 +74,9 @@ public class XyDispatcher extends Thread {
         return noExpired;
     }
 
-    public Session createSession() {
-        return fFactory.getWebContext().createSession();
+    public Session createSession(String jSessionId) {
+        return fFactory.getWebContext().createSession(jSessionId);
     }
-
-    /**
-     * WEB_ROOT is the directory where our HTML and other files reside. For this
-     * package, WEB_ROOT is the "webroot" directory under the working directory. The
-     * working directory is the location in the file system from where the java
-     * command was invoked.
-     */
-    public static String WEB_ROOT = System.getProperty("user.dir") + File.separator + WEB_PATH;
 
     // shutdown command
     public static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
