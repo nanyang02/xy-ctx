@@ -63,7 +63,11 @@ public class XyDispatcher extends Thread {
     }
 
     public boolean hasSessionIfAbsentReflush(String jSessionId) {
-        return fFactory.getWebContext().hasSessionIfabsentReflush(jSessionId);
+        boolean noExpired = fFactory.getWebContext().hasSessionIfabsentReflush(jSessionId);
+        if (!noExpired) {
+            fFactory.getWebContext().removeSession(jSessionId);
+        }
+        return noExpired;
     }
 
     public Session createSession() {

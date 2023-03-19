@@ -86,6 +86,10 @@ public class WebContext {
         return sessionFactory.hasSessionIfabsentReflush(jSessionId);
     }
 
+    public void removeSession(String jSessionId) {
+        sessionFactory.removeSession(jSessionId);
+    }
+
     public String getContextPath() {
         return contextPath;
     }

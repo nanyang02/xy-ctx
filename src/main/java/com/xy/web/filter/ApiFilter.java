@@ -86,6 +86,8 @@ public class ApiFilter implements Filter {
                     } else if (first.annotationType() == Var.class) {
                         args[i] = WebUtil.parseAnnoVar(argsMap, type, (Var) first);
                     }
+                } else if (type == Session.class) {
+                    args[i] = req.getSession();
                 } else if (type == Cookie.class) {
                     args[i] = req.getCookie();
                 } else if (type == RequestHeader.class) {

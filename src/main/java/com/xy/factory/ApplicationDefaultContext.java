@@ -25,6 +25,7 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
     }
 
     public void registerFilter(Filter filter) {
+        regSingleton(filter);
         webContext.registerFilter(filter);
     }
 
@@ -97,6 +98,10 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     public void regProxyBean(Object bean, String alias) {
         beanFactory.regProxyBean(bean, alias);
+    }
+
+    public void regProxyBean(Object bean) {
+        regProxyBean(bean, bean.getClass().getName());
     }
 
     @Override

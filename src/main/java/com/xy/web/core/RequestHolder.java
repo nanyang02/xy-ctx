@@ -68,8 +68,8 @@ public class RequestHolder {
         dispatcher.registerSession(session);
     }
 
-    public boolean hasSessionIfAbsentReFlush(String jsessionId) {
-        return dispatcher.hasSessionIfAbsentReflush(jsessionId);
+    public boolean hasSessionIfAbsentReFlush(String jSessionId) {
+        return dispatcher.hasSessionIfAbsentReflush(jSessionId);
     }
 
     public Session createSession() {

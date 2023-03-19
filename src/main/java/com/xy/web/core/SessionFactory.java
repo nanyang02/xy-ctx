@@ -71,4 +71,9 @@ public class SessionFactory {
 
         return false;
     }
+
+    public void removeSession(String jSessionId) {
+        if (null != jSessionId)
+            sessionMap.remove(jSessionId);
+    }
 }
