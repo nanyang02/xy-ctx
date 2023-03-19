@@ -3,14 +3,19 @@ package com.xy.web.session;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Session 技术，用于存储客户端在服务端的信息的
+ */
 @Data
 @Accessors(chain = true)
 public class Session {
 
     public final static String JSESSION_KEY = "JSESIIONID";
+
+    private Map<String, Object> attrMap = new ConcurrentHashMap<>();
 
     // JSESIIONID
     private String jSessionId;
@@ -32,6 +37,25 @@ public class Session {
     public Session setExpired(long ms) {
         expiredMillis = System.currentTimeMillis() + ms;
         return this;
+    }
+
+    public void setAttribute(String name, Object value) {
+        if (null != name && value != null) {
+            attrMap.put(name, value);
+        }
+    }
+
+    public Object getAttrubute(String name) {
+        if (null == name) return name;
+        return attrMap.get(name);
+    }
+
+    public void removeAttribute(String name) {
+        attrMap.remove(name);
+    }
+
+    public List<String> getAttrubuteNames() {
+        return new ArrayList<>(attrMap.keySet());
     }
 
     @Override

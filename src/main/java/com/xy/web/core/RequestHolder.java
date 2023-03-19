@@ -21,6 +21,7 @@ public class RequestHolder {
     private Request request;
     private Response response;
     private XyDispatcher dispatcher;
+    private Session session;
 
     public String getPathName() {
         return request.getPathname();
@@ -37,6 +38,18 @@ public class RequestHolder {
             e.printStackTrace();
             throw new ParseRequestParamsException();
         }
+    }
+
+    public void setSession(Session session) {
+        this.session = session;
+    }
+
+    public Session getSession() {
+        return session;
+    }
+
+    public Session getSession(String jSessionId) {
+        return dispatcher.getSession(jSessionId);
     }
 
     public Request getRequest() {

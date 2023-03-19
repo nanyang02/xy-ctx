@@ -87,6 +87,10 @@ public class Request {
         return (dat | rnrn[3]) == 56026;
     }
 
+    public Session getSession() {
+        return holder.getSession();
+    }
+
     public void parse() {
         // Read a set of characters from the socket
         // 初始容量设置为 10M 字符容量
@@ -391,10 +395,15 @@ public class Request {
 
                 String jSessionId = map.get("JSESSIONID");
                 boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
-                if(!had) {
+                if (!had) {
                     Session session = holder.createSession();
+                    // 注入session信息
                     holder.registerSession(session);
+                    // holder 保持一下session
+                    holder.setSession(session);
                     responseHeader.addHeader("JSESSIONID", session.getJSessionId());
+                } else {
+                    holder.setSession(holder.getSession(jSessionId));
                 }
             } else if ("content-length".equals(headerKey)) {
                 contentLength = Long.parseLong(headerValue);

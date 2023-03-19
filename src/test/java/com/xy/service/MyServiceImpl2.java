@@ -11,7 +11,7 @@ import com.xy.stereotype.Service;
  * @author yangnan 2022/10/24 10:41
  * @since 1.8
  */
-@Service(ignoreSupper = true)
+//@Service(ignoreSupper = true)
 public class MyServiceImpl2 implements MyService, ApplicationContextAware {
 
     ApplicationContext ctx;

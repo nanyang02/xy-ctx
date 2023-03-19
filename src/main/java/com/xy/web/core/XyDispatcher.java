@@ -135,4 +135,8 @@ public class XyDispatcher extends Thread {
     public void run() {
         runServer(PORT, HOST);
     }
+
+    public Session getSession(String jSessionId) {
+        return fFactory.getWebContext().getSession(jSessionId);
+    }
 }
