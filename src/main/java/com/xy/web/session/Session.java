@@ -25,7 +25,7 @@ public class Session {
     public Session(String jSessionId) {
         if (null == jSessionId || "".equals(jSessionId))
             jSessionId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        
+
         this.jSessionId = jSessionId;
     }
 
@@ -59,6 +59,10 @@ public class Session {
 
     public List<String> getAttrubuteNames() {
         return new ArrayList<>(attrMap.keySet());
+    }
+
+    public void clear() {
+        attrMap.clear();
     }
 
     @Override

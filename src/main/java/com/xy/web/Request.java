@@ -395,10 +395,6 @@ public class Request {
 
                 // 此处需要兼容一种特殊情况，客户端已经有JsessionId,此时需要不变
                 String jSessionId = map.get(Session.JSESSION_KEY);
-                if(null != jSessionId) {
-                    boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
-
-                }
                 boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
                 if (!had) {
                     Session session = holder.createSession(jSessionId);
