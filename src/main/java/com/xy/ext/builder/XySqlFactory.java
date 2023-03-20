@@ -1,6 +1,9 @@
 package com.xy.ext.builder;
 
-import com.xy.ext.sqlite3.Sqlite3;
+
+import com.xy.ext.SysTick.SysTick;
+import com.xy.ext.database.h2.H2Database;
+import com.xy.ext.database.sqlite3.Sqlite3;
 
 /**
  * Class <code>XySqlFactory</code>
@@ -13,15 +16,27 @@ public class XySqlFactory {
     private XyJdbc jdbc;
 
     public XySqlFactory(DbType dbType, String db) {
-
         if (DbType.mysql.ordinal() == dbType.ordinal()) {
             // TODO
         } else if (DbType.sqlite3.ordinal() == dbType.ordinal()) {
             jdbc = new Sqlite3(db);
+        } else if (DbType.H2.ordinal() == dbType.ordinal()) {
+            jdbc = new H2Database(db);
         } else {
             throw new RuntimeException("Un Supply Database Type");
         }
+    }
 
+    public XyJdbc getJdbc() {
+        return jdbc;
+    }
+
+    public void registerAliveTask(SysTick sysTick) {
+        sysTick.registerTask(jdbc.getAliveTask());
+    }
+
+    public void enableConnectionKeepAlive() {
+        jdbc.enableConnectionKeepAlive();
     }
 
     public int execSql(String sql) {

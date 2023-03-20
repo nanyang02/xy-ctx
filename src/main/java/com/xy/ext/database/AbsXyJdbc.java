@@ -1,9 +1,8 @@
-package com.xy.ext.sqlite3;
+package com.xy.ext.database;
 
-import com.xy.ext.builder.dto.ConvertResultSetToEntity;
 import com.xy.ext.builder.RsSingleType;
 import com.xy.ext.builder.XyJdbc;
-import com.xy.ext.builder.DbType;
+import com.xy.ext.builder.dto.ConvertResultSetToEntity;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -12,80 +11,43 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Class <code>Sqlite3</code>
+ * Class <code>AbsXyJdbc</code>
  *
- * @author yangnan 2022/12/1 10:26
+ * @author yangnan 2023/3/20 21:30
  * @since 1.8
  */
-public class Sqlite3 implements XyJdbc {
+public abstract class AbsXyJdbc implements XyJdbc {
 
-    private String db = "local.db";
-
-    public Sqlite3(String db) {
-        if (null != db && !"".equals(db))
-            this.db = db;
-    }
-
-    @Override
-    public DbType getDbType() {
-        return DbType.sqlite3;
-    }
+    public abstract Connection getConn() throws SQLException;
 
     @Override
     public int execSql(String sql) {
-        Connection c = null;
         int effect = 0;
         try {
-            Class.forName("org.sqlite.JDBC");
-            // if not exists will create db
-            c = DriverManager.getConnection("jdbc:sqlite:" + db);
-            Statement statement = c.createStatement();
-
+            Statement statement = getConn().createStatement();
             effect = statement.executeUpdate(sql);
-
             statement.close();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (null != c) c.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
         return effect;
     }
 
     @Override
     public void querySql(String sql, Consumer<ResultSet> rsConsumer) {
-        Connection c = null;
-        try {
-            Class.forName("org.sqlite.JDBC");
-            // if not exists will create db
-            c = DriverManager.getConnection("jdbc:sqlite:" + db);
-            try (Statement statement = c.createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery(sql)) {
-                    rsConsumer.accept(resultSet);
-                }
+        try (Statement statement = getConn().createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                rsConsumer.accept(resultSet);
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (null != c) c.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
     }
 
     private Object querySingleVal(String sql, Consumer<PreparedStatement> pst, RsSingleType singleType) {
-        Connection c = null;
         Object t = null;
         try {
-            Class.forName("org.sqlite.JDBC");
-            c = DriverManager.getConnection("jdbc:sqlite:" + db);
-            PreparedStatement statement = c.prepareStatement(sql);
+            PreparedStatement statement = getConn().prepareStatement(sql);
             pst.accept(statement);
             ResultSet resultSet = statement.executeQuery();
             if (singleType.name().equals(RsSingleType.INT.name())) {
@@ -103,12 +65,6 @@ public class Sqlite3 implements XyJdbc {
             statement.close();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (null != c) c.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
         return t;
     }
@@ -124,8 +80,8 @@ public class Sqlite3 implements XyJdbc {
     }
 
     @Override
-    public Date queryDate(String sql, Consumer<PreparedStatement> pst) {
-        return (Date) querySingleVal(sql, pst, RsSingleType.DATE);
+    public java.util.Date queryDate(String sql, Consumer<PreparedStatement> pst) {
+        return (java.util.Date) querySingleVal(sql, pst, RsSingleType.DATE);
     }
 
     @Override
@@ -140,13 +96,9 @@ public class Sqlite3 implements XyJdbc {
 
     @Override
     public <T> T queryObject(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
-        Connection c = null;
         T t = null;
         try {
-            Class.forName("org.sqlite.JDBC");
-            // if not exists will create db
-            c = DriverManager.getConnection("jdbc:sqlite:" + db);
-            PreparedStatement statement = c.prepareStatement(sql);
+            PreparedStatement statement = getConn().prepareStatement(sql);
             pst.accept(statement);
 
             ResultSet resultSet = statement.executeQuery();
@@ -156,12 +108,6 @@ public class Sqlite3 implements XyJdbc {
             statement.close();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (null != c) c.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
         return t;
     }
@@ -197,13 +143,9 @@ public class Sqlite3 implements XyJdbc {
 
     @Override
     public <T> List<T> queryList(String sql, Consumer<PreparedStatement> pst, Class<T> tClass) {
-        Connection c = null;
         List<T> t = new ArrayList<>();
         try {
-            Class.forName("org.sqlite.JDBC");
-            // if not exists will create db
-            c = DriverManager.getConnection("jdbc:sqlite:" + db);
-            PreparedStatement statement = c.prepareStatement(sql);
+            PreparedStatement statement = getConn().prepareStatement(sql);
             pst.accept(statement);
             ResultSet resultSet = statement.executeQuery();
             // 转换成对象
@@ -212,38 +154,21 @@ public class Sqlite3 implements XyJdbc {
             statement.close();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (null != c) c.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
         return t;
     }
 
     @Override
     public int executeSql(String sql, Consumer<PreparedStatement> pst) {
-        Connection c = null;
         int effect = 0;
         try {
-            Class.forName("org.sqlite.JDBC");
-            // if not exists will create db
-            c = DriverManager.getConnection("jdbc:sqlite:" + db);
-
-            PreparedStatement statement = c.prepareStatement(sql);
+            PreparedStatement statement = getConn().prepareStatement(sql);
             pst.accept(statement);
 
             effect = statement.executeUpdate();
             statement.close();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (null != c) c.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
         return effect;
     }

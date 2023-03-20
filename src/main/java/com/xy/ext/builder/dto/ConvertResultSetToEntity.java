@@ -109,64 +109,67 @@ public class ConvertResultSetToEntity {
      * 从Resultset中解析出单行记录对象，存储在实体对象中
      */
     private static <T> T parseObjectFromResultSet(ResultSet rs, DataTableEntity dataTable, Class<T> classEntity) throws Exception {
-
         Map<String, MethodEntity> methods = getEntityMethodsMapping(classEntity);
-
         T objEntity = classEntity.newInstance();
         int nColumnCount = dataTable.getColumnCount();
         String[] strColumnNames = dataTable.getColumnNames();
-        for (int i = 0; i < nColumnCount; i++) {
-            // 获取字段值
-            Object objColumnValue = rs.getObject(strColumnNames[i]);
 
-            // HashMap中的方法名key值
-            String strMethodKey = null;
+        // rs.next() 用于判断是否有查询到至少一条数据（H2不调用会报错）
+        if (rs.next()) {
+            for (int i = 0; i < nColumnCount; i++) {
+                // 获取字段值
+                Object objColumnValue = rs.getObject(strColumnNames[i]);
 
-            // 获取set方法名
-            if (strColumnNames[i] != null) {
-                strMethodKey = "SET" + strColumnNames[i].toUpperCase();
-            }
+                // HashMap中的方法名key值
+                String strMethodKey = null;
 
-            // 值和方法都不为空,这里方法名不为空即可,值可以为空的
-            if (strMethodKey != null) {
-                // 判断字段的类型,方法名，参数类型
-                try {
+                // 获取set方法名
+                if (strColumnNames[i] != null) {
+                    strMethodKey = "SET" + strColumnNames[i].toUpperCase();
+                }
 
-                    MethodEntity methodEntity = methods.get(strMethodKey);
-
-                    if (null == methodEntity) {
-                        continue;
-                    }
-
-                    String methodName = methodEntity.getMethodName();
-                    int repeatMethodNum = methodEntity.getRepeatMethodNum();
-                    Class[] paramTypes = methodEntity.getMethodParamTypes();
-                    Method method = classEntity.getMethod(methodName, paramTypes);
-
-                    // 如果重载方法数 >
-                    // 1，则判断是否有java.lang.IllegalArgumentException异常，循环处理
+                // 值和方法都不为空,这里方法名不为空即可,值可以为空的
+                if (strMethodKey != null) {
+                    // 判断字段的类型,方法名，参数类型
                     try {
-                        // 设置参数,实体对象，实体对象方法参数
-                        method.invoke(objEntity, new Object[]{objColumnValue});
 
-                    } catch (java.lang.IllegalArgumentException e) {
-                        // 处理重载方法
-                        for (int j = 1; j < repeatMethodNum; j++) {
-                            try {
-                                Class[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
-                                method = classEntity.getMethod(methodName, repeatParamTypes);
-                                method.invoke(objEntity, new Object[]{objColumnValue});
-                                break;
-                            } catch (java.lang.IllegalArgumentException ex) {
-                                continue;
+                        MethodEntity methodEntity = methods.get(strMethodKey);
+
+                        if (null == methodEntity) {
+                            continue;
+                        }
+
+                        String methodName = methodEntity.getMethodName();
+                        int repeatMethodNum = methodEntity.getRepeatMethodNum();
+                        Class[] paramTypes = methodEntity.getMethodParamTypes();
+                        Method method = classEntity.getMethod(methodName, paramTypes);
+
+                        // 如果重载方法数 >
+                        // 1，则判断是否有java.lang.IllegalArgumentException异常，循环处理
+                        try {
+                            // 设置参数,实体对象，实体对象方法参数
+                            method.invoke(objEntity, new Object[]{objColumnValue});
+
+                        } catch (java.lang.IllegalArgumentException e) {
+                            // 处理重载方法
+                            for (int j = 1; j < repeatMethodNum; j++) {
+                                try {
+                                    Class[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
+                                    method = classEntity.getMethod(methodName, repeatParamTypes);
+                                    method.invoke(objEntity, new Object[]{objColumnValue});
+                                    break;
+                                } catch (java.lang.IllegalArgumentException ex) {
+                                    continue;
+                                }
                             }
                         }
+                    } catch (NoSuchMethodException e) {
+                        throw new NoSuchMethodException();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
-                } catch (NoSuchMethodException e) {
-                    throw new NoSuchMethodException();
-                } catch (Exception ex) {
-                    ex.printStackTrace();
                 }
+
             }
 
         }

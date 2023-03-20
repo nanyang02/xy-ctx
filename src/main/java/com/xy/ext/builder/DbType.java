@@ -6,6 +6,6 @@ package com.xy.ext.builder;
  * @author yangnan 2023/1/17 17:18
  * @since 1.8
  */
-public enum  DbType {
-    mysql,sqlite3
+public enum DbType {
+    mysql, sqlite3, H2
 }

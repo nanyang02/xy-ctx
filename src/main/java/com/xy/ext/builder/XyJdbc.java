@@ -1,5 +1,7 @@
 package com.xy.ext.builder;
 
+import com.xy.ext.SysTick.SysTickTask;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Date;
@@ -76,4 +78,11 @@ public interface XyJdbc {
     int executeSql(String sql, Consumer<PreparedStatement> pst);
 
     DbType getDbType();
+
+    /**
+     * Connection KeepAlive
+     */
+    void enableConnectionKeepAlive();
+
+    SysTickTask getAliveTask();
 }

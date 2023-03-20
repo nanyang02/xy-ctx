@@ -57,7 +57,7 @@ public class ApiFilter implements Filter {
         }
 
         // 请求的请求头里面如果没有sessionid则创建一个
-        if (!req.getRequestHeader().hasCookie(Session.JSESSION_KEY)) {
+        if (!(req.getRequestHeader().hasCookie(Session.JSESSION_KEY) || req.getRequestHeader().hasCookie(Session.JSESSION_KEY.toLowerCase()))) {
             Session session = factory.getWebContext().createSession(null);
             req.getCookie().addCookie(Session.JSESSION_KEY, session.getJSessionId());
             registerSession(session);

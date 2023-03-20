@@ -71,6 +71,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- h2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.200</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- 高版本的跑不动，jdk不匹配 -->
         <!--<dependency>-->
         <!--<groupId>org.eclipse.jetty</groupId>-->

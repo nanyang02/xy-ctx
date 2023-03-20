@@ -3,9 +3,15 @@ package com.xy.factory;
 
 import com.xy.context.ApplicationContext;
 import com.xy.context.BeanConfigure;
+import com.xy.ext.SysTick.SysTick;
+import com.xy.ext.builder.DbType;
+import com.xy.ext.builder.XySqlFactory;
 import com.xy.web.annotation.EnableWeb;
 import com.xy.web.core.WebContext;
 import com.xy.web.filter.Filter;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * bean容器实现类, 提供具体的容器的注册和获取bean的基本功能
@@ -16,7 +22,15 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     private final WebContext webContext = new WebContext(this);
 
+    private final SysTick sysTick = new SysTick(this);
+
+    public SysTick getSysTick() {
+        return sysTick;
+    }
+
     private static boolean useDebug = false;
+
+    private Consumer<ApplicationContext> beforeWenStartInvoke;
 
     public BeanFactory getBeanFactory() {
         return beanFactory;
@@ -147,9 +161,17 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
         useWeb();
     }
 
+    public void beforeRunWebServer(Consumer<ApplicationContext> ctx) {
+        beforeWenStartInvoke = ctx;
+    }
+
     public void useWeb() {
         // web ctx init
         webContext.init();
+
+        // invoke
+        beforeWenStartInvoke.accept(this);
+
         // start server thread
         webContext.start();
     }
@@ -168,5 +190,13 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     public boolean isUseDebug() {
         return useDebug;
+    }
+
+    public void enableInnerDatabase(DbType dbType, String dbName) {
+        XySqlFactory factory = new XySqlFactory(dbType, dbName);
+        regProxyBean(factory.getJdbc());
+        factory.registerAliveTask(getSysTick());
+        factory.enableConnectionKeepAlive();
+        regProxyBean(factory);
     }
 }

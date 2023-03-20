@@ -394,7 +394,8 @@ public class Request {
                 map.forEach((key, value) -> requestHeader.getCookie().addCookie(key, value));
 
                 // 此处需要兼容一种特殊情况，客户端已经有JsessionId,此时需要不变
-                String jSessionId = map.get(Session.JSESSION_KEY);
+                boolean isLowerCase = map.containsKey(Session.JSESSION_KEY.toLowerCase());
+                String jSessionId = map.get(isLowerCase ? Session.JSESSION_KEY.toLowerCase() : Session.JSESSION_KEY);
                 boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
                 if (!had) {
                     Session session = holder.createSession(jSessionId);
