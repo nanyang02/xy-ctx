@@ -3,7 +3,7 @@ package com.xy.ext.builder;
 
 import com.xy.ext.SysTick.SysTick;
 import com.xy.ext.database.h2.H2Database;
-import com.xy.ext.database.sqlite3.Sqlite3;
+import com.xy.ext.database.sqlite3.SQLite3;
 
 /**
  * Class <code>XySqlFactory</code>
@@ -16,10 +16,10 @@ public class XySqlFactory {
     private XyJdbc jdbc;
 
     public XySqlFactory(DbType dbType, String db) {
-        if (DbType.mysql.ordinal() == dbType.ordinal()) {
+        if (DbType.MySQL.ordinal() == dbType.ordinal()) {
             // TODO
-        } else if (DbType.sqlite3.ordinal() == dbType.ordinal()) {
-            jdbc = new Sqlite3(db);
+        } else if (DbType.SQLite3.ordinal() == dbType.ordinal()) {
+            jdbc = new SQLite3(db);
         } else if (DbType.H2.ordinal() == dbType.ordinal()) {
             jdbc = new H2Database(db);
         } else {

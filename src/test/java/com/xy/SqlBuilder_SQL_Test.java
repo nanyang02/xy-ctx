@@ -12,7 +12,7 @@ import org.junit.Test;
  */
 public class SqlBuilder_SQL_Test {
 
-    XySqlFactory factory = new XySqlFactory(DbType.sqlite3, "db.db");
+    XySqlFactory factory = new XySqlFactory(DbType.SQLite3, "db.db");
 
     @Test
     public void insertTest() {

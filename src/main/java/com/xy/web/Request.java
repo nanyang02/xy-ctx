@@ -397,14 +397,7 @@ public class Request {
                 boolean isLowerCase = map.containsKey(Session.JSESSION_KEY.toLowerCase());
                 String jSessionId = map.get(isLowerCase ? Session.JSESSION_KEY.toLowerCase() : Session.JSESSION_KEY);
                 boolean had = holder.hasSessionIfAbsentReFlush(jSessionId);
-                if (!had) {
-                    Session session = holder.createSession(jSessionId);
-                    // 注入session信息
-                    holder.registerSession(session);
-                    // holder 保持一下session
-                    holder.setSession(session);
-                    responseHeader.addHeader(Session.JSESSION_KEY, session.getJSessionId());
-                } else {
+                if (had) {
                     holder.setSession(holder.getSession(jSessionId));
                 }
             } else if ("content-length".equals(headerKey)) {

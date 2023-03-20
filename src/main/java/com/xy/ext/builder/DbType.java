@@ -7,5 +7,5 @@ package com.xy.ext.builder;
  * @since 1.8
  */
 public enum DbType {
-    mysql, sqlite3, H2
+    MySQL, SQLite3, H2
 }

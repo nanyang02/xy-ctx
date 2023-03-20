@@ -14,14 +14,14 @@ import java.sql.*;
  * @author yangnan 2022/12/1 10:26
  * @since 1.8
  */
-public class Sqlite3 extends AbsXyJdbc {
+public class SQLite3 extends AbsXyJdbc {
 
     private String db = "local.db";
 
     private Connection conn;
     private SqliteConnectionSysTickTask task;
 
-    public Sqlite3(String db) {
+    public SQLite3(String db) {
         try {
             Class.forName("org.sqlite.JDBC");
 
@@ -45,7 +45,7 @@ public class Sqlite3 extends AbsXyJdbc {
 
     @Override
     public DbType getDbType() {
-        return DbType.sqlite3;
+        return DbType.SQLite3;
     }
 
     @Override
