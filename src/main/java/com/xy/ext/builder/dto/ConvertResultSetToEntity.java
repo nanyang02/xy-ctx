@@ -27,7 +27,7 @@ public class ConvertResultSetToEntity {
         List<T> listResult = new ArrayList();
         while (rsResult.next()) {
             // 调用方法，根据字段名在hsMethods中查找对应的set方法
-            T objResult = parseObjectFromResultSet(rsResult, dataTable, classEntity);
+            T objResult = parseObjectFromResultSet(rsResult, dataTable, classEntity, true);
 
             listResult.add(objResult);
         }
@@ -53,7 +53,7 @@ public class ConvertResultSetToEntity {
 
         // 获取父类的方法，用于进行处理
         Class aClass = (Class) classEntity.getGenericSuperclass();
-        if (!aClass.isInterface() && !aClass.getName().equals(Object.class.getName())) {
+        if (null != aClass && !aClass.isInterface() && !aClass.getName().equals(Object.class.getName())) {
             searchMethodsFromClass(aClass, methods);
         }
 
@@ -108,14 +108,14 @@ public class ConvertResultSetToEntity {
     /**
      * 从Resultset中解析出单行记录对象，存储在实体对象中
      */
-    private static <T> T parseObjectFromResultSet(ResultSet rs, DataTableEntity dataTable, Class<T> classEntity) throws Exception {
+    private static <T> T parseObjectFromResultSet(ResultSet rs, DataTableEntity dataTable, Class<T> classEntity, boolean rsHasNext) throws Exception {
         Map<String, MethodEntity> methods = getEntityMethodsMapping(classEntity);
         T objEntity = classEntity.newInstance();
         int nColumnCount = dataTable.getColumnCount();
         String[] strColumnNames = dataTable.getColumnNames();
 
         // rs.next() 用于判断是否有查询到至少一条数据（H2不调用会报错）
-        if (rs.next()) {
+        if (rsHasNext || rs.next()) {
             for (int i = 0; i < nColumnCount; i++) {
                 // 获取字段值
                 Object objColumnValue = rs.getObject(strColumnNames[i]);
@@ -181,6 +181,27 @@ public class ConvertResultSetToEntity {
      */
     public static <T> T parseObjectFromResultSet(ResultSet rs, Class<T> tClass) throws Exception {
         DataTableEntity dataTable = getDataTableEntity(rs);
-        return parseObjectFromResultSet(rs, dataTable, tClass);
+        return parseObjectFromResultSet(rs, dataTable, tClass, false);
+    }
+
+    public static <T> List<T> parseDataToMapList(ResultSet rs) {
+        List<Object> list = new ArrayList<>();
+        try {
+            DataTableEntity tbInf = getDataTableEntity(rs);
+            int nColumnCount = tbInf.getColumnCount();
+            String[] strColumnNames = tbInf.getColumnNames();
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                for (int i = 0; i < nColumnCount; i++) {
+                    // 获取字段值
+                    Object objColumnValue = rs.getObject(strColumnNames[i]);
+                    map.put(strColumnNames[i], objColumnValue);
+                }
+                list.add(map);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return (List<T>) list;
     }
 }

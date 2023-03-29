@@ -169,7 +169,8 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
         webContext.init();
 
         // invoke
-        beforeWenStartInvoke.accept(this);
+        if (null != beforeWenStartInvoke)
+            beforeWenStartInvoke.accept(this);
 
         // start server thread
         webContext.start();

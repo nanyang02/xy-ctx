@@ -5,9 +5,8 @@ import com.xy.ext.builder.XyJdbc;
 import com.xy.ext.builder.dto.ConvertResultSetToEntity;
 
 import java.sql.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -114,6 +113,9 @@ public abstract class AbsXyJdbc implements XyJdbc {
 
     private <T> List<T> toObjectList(ResultSet resultSet, Class<T> tClass) throws Exception {
 
+        if (tClass.isAssignableFrom(Map.class)) {
+            return ConvertResultSetToEntity.parseDataToMapList(resultSet);
+        }
         if (tClass == String.class) {
             return getObjectFromRs(resultSet);
         }

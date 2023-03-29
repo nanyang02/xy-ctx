@@ -127,7 +127,6 @@ public abstract class AbsSqlBuilder {
         if (overStep(STEP_ORDER)) throw new RuntimeException("Sql构建出错 where 不能出现在 order by 和 limit 后面，请调整sql构建的顺序");
         order.append(unUseOrder ? " order by " : ", ").append(column).append(isAsc ? " asc" : isDesc ? " desc" : "");
         if (unUseOrder) unUseOrder = false;
-        index++;
     }
 
     public void doLimit(int offset, int length) {

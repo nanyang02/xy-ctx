@@ -35,7 +35,7 @@ public class H2Database extends AbsXyJdbc {
                 conn = DriverManager.getConnection("jdbc:h2:" + dbName, "sa", "");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return conn;
     }

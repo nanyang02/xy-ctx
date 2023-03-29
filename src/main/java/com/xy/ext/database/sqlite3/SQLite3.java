@@ -31,7 +31,7 @@ public class SQLite3 extends AbsXyJdbc {
             task = new SqliteConnectionSysTickTask(getConn());
             task.setRunClk(SysTickTimeUnit.Second, 60);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
