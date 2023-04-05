@@ -7,11 +7,13 @@ package com.xy.web;
  * @since 1.8
  */
 public enum RequestMethod {
-    GET, POST;
+    GET, POST, DELETE, PUT;
 
     public static RequestMethod match(String name) {
         return GET.isMatch(name) ? GET
                 : POST.isMatch(name) ? POST
+                : DELETE.isMatch(name) ? DELETE
+                : PUT.isMatch(name) ? PUT
                 : null;
     }
 

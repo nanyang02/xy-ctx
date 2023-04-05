@@ -1,8 +1,10 @@
 package com.xy.web.core;
 
 import com.xy.web.MsgType;
+import com.xy.web.RequestMethod;
 
 import java.lang.reflect.Method;
+import java.net.Authenticator;
 import java.util.function.Function;
 
 public class MappingDefinition {
@@ -16,6 +18,8 @@ public class MappingDefinition {
     private Method mappingMethod;
     // 对应方法回调函数
     private Function<Object[], Object> call;
+    // 请求类型过滤，如果没有标注，默认为空
+    private RequestMethod requestMethod;
 
     public MsgType getType() {
         return type;
@@ -55,5 +59,13 @@ public class MappingDefinition {
 
     public void setCall(Function<Object[], Object> call) {
         this.call = call;
+    }
+
+    public RequestMethod getRequestMethod() {
+        return requestMethod;
+    }
+
+    public void setRequestMethod(RequestMethod requestMethod) {
+        this.requestMethod = requestMethod;
     }
 }

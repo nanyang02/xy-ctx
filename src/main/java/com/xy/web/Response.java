@@ -181,6 +181,22 @@ public class Response {
         }
     }
 
+    public void response301(String path) {
+        try {
+            byte[] data = "ok".getBytes();
+            // 301 Moved Permanently 永久重定向 --> 搜索引擎会自动更新链接地址
+            // 302 Moved Temporarily 临时重定向 --> 搜索引擎不会自动更新链接地址
+            StringBuilder sb = defaultHeader(HttpStatus.S301)
+                    .append("Content-type: ").append("text/plain;UTF-8").append(newLine())
+                    .append("Content-length: ").append(data.length).append(newLine())
+                    .append("Location: ").append(path).append(newLine());
+
+            dyncAppendAndFlush(data, sb);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
     public void response500(String message) {
         try {
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
@@ -197,6 +213,11 @@ public class Response {
         }
     }
 
+    /**
+     * 响应一段html内容
+     *
+     * @param html
+     */
     public void responseHtml(String html) {
         try {
             byte[] data = html.getBytes();
@@ -210,6 +231,11 @@ public class Response {
         }
     }
 
+    /**
+     * 简单正常响应消息内容
+     *
+     * @param content
+     */
     public void responseBase(String content) {
         try {
             byte[] data = content.getBytes("UTF-8");

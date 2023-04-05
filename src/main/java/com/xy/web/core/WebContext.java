@@ -1,15 +1,10 @@
 package com.xy.web.core;
 
 import com.xy.beans.BeanDefine;
-import com.xy.context.ApplicationContext;
 import com.xy.factory.ApplicationDefaultContext;
-import com.xy.factory.BeanFactory;
-import com.xy.web.filter.ApiFilter;
-import com.xy.web.filter.Filter;
-import com.xy.web.filter.FilterChainFactory;
-import com.xy.web.filter.ResFilter;
-import com.xy.web.session.Session;
 import com.xy.stereotype.Controller;
+import com.xy.web.filter.*;
+import com.xy.web.session.Session;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -100,7 +95,7 @@ public class WebContext {
 
     public void registerFilter(Filter filter) {
         init();
-        filterFactory.register(filter);
+        filterFactory.registerAtLast(filter);
     }
 
     private void parseController(Object c) {
@@ -108,16 +103,24 @@ public class WebContext {
         mapping.parseController(c);
     }
 
+    /**
+     * 启动web服务的时候，自动的将一些内置的过滤器配置好，添加在请求处理的过程中
+     * - 静态资源访问过滤，启动时自动加载最前面
+     * - 请求方法的过滤，如果配置的不符，拦截
+     * - API的处理过滤，能走到这一步，才算api的请求，然后调用controller层的服务处理层来接受参数进行调用
+     */
     public void start() {
         try {
             dispatcher = new XyDispatcher(filterFactory);
             dispatcher.setHost(host);
             dispatcher.setPort(port);
             dispatcher.setWebRoot(webroot);
+            // before api, check mapping-api-RequestMethod check
+            filterFactory.registerAtLast(new RequestMethodFilter().setFactory(filterFactory));
             // beore start, add api filter to web server
-            filterFactory.register(new ApiFilter().setFactory(filterFactory));
+            filterFactory.registerAtLast(new ApiFilter().setFactory(filterFactory));
             // static resource add first
-            filterFactory.register(0, new ResFilter().setFactory(filterFactory));
+            filterFactory.registerAtFirst(new ResFilter().setFactory(filterFactory));
             status = Status.RUNNING;
             registerControllerMapping();
             dispatcher.start();

@@ -16,6 +16,21 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.*;
 
+/**
+ * 通过读netty的源码，http的解析，主要基于buffer的内容来进行的，当一个消息解析，我们先存储buffer
+ * 然后，当消息至少有一个长度的时候，才进行解析，不然就不触发解析是最好。
+ * <p>
+ * - 当然，netty框架是直接有一个累加器，就是多次触发buffer的读取，只要不消费，就一直留待下一次。
+ * - 这样解析http协议其实就简单很多了，因此从buffer的长度和内容上，已经十分方便于读取内容用于判定了
+ * - 比如，头解析完毕，自然有一个 \r\n\r\n 的一个标识，就是说头和内容之间隔了一行。
+ * <p>
+ * - 比如chuck，开始的时候有特定的字段。
+ * - 比如formdate有固定的格式的开始和结束，每个参数有固定的格式
+ * - 这些内容都是比较容易进行识别的。
+ * <p>
+ * 从这里看，我们必须写一个累加器，用于读取来自客户端发送的消息内容。
+ * 然后加上超时时间，如果长时间内没有消息传递，抛弃读取缓存区buffer，这样来晚上本容器服务
+ */
 public class Request {
 
     private static final Logger logger = LoggerFactory.getLogger(Request.class);
@@ -203,7 +218,9 @@ public class Request {
             } catch (Exception e) {
                 logger.error("Get 请求解析出错", e);
             }
-        } else {
+        }
+        // POST, PUT, DELETE
+        else {
             String bodyContent = getDataStr(request, dataList);
             // 如果没有数据就不用解析了，上面将头解析完成就完成了
             if (bodyContent.length() > 0) {
@@ -343,7 +360,6 @@ public class Request {
         }
 
     }
-
 
     private void doParseHeaderPart(RequestParams instace, String headerStr) {
         originHeaderStr = headerStr;

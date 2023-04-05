@@ -19,14 +19,33 @@ public class FilterChainFactory {
     private LinkedList<Filter> chain = new LinkedList<>();
     private ArrayDeque queue = new ArrayDeque();
 
-    public void register(Filter filter) {
+    /**
+     * 在最后添加
+     *
+     * @param filter
+     */
+    public void registerAtLast(Filter filter) {
         if (!ctx.isRunning())
             chain.addLast(filter);
     }
 
+    /**
+     * 在头部添加
+     *
+     * @param filter
+     */
+    public void registerAtFirst(Filter filter) {
+        if (!ctx.isRunning()) chain.addFirst(filter);
+    }
+
+    /**
+     * 在指定的位置处插入并占位，后面的如果有，往后移
+     *
+     * @param index
+     * @param filter
+     */
     public void register(int index, Filter filter) {
-        if (!ctx.isRunning())
-            chain.add(index, filter);
+        if (!ctx.isRunning()) chain.add(index, filter);
     }
 
     public UrlFilterChain getChain() {
