@@ -1,7 +1,6 @@
 package com.xy.web.header;
 
 import com.xy.web.annotation.NotNull;
-import com.xy.web.cookie.Cookie;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

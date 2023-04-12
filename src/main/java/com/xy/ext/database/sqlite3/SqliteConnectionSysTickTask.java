@@ -3,10 +3,8 @@ package com.xy.ext.database.sqlite3;
 import com.xy.ext.SysTick.SysTickTask;
 import com.xy.ext.SysTick.SysTickTimeUnit;
 import com.xy.ext.SysTick.SysTockTaskState;
-import com.xy.stereotype.Component;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**

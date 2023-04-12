@@ -7,5 +7,6 @@ import java.lang.annotation.*;
 @Documented
 public @interface Var {
     String value();
+
     String defVal() default "";
 }

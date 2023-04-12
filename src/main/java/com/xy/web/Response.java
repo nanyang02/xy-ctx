@@ -1,7 +1,6 @@
 package com.xy.web;
 
 import com.xy.web.core.RequestHolder;
-import com.xy.web.core.XyDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

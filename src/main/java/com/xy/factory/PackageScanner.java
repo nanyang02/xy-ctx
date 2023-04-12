@@ -6,7 +6,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.*;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -71,6 +73,7 @@ public abstract class PackageScanner {
 
     /**
      * 从当前已经加载过的里面查找，注意，还没有加载过的，不会出现在这里面，所以不能用于包扫描
+     *
      * @param packageName
      */
     public void packageScanner2(String packageName) {
@@ -78,12 +81,12 @@ public abstract class PackageScanner {
         try {
             f = ClassLoader.class.getDeclaredField("classes");
             f.setAccessible(true);
-            Vector<?> classes=(Vector<?>)f.get(ClassLoader.getSystemClassLoader());
+            Vector<?> classes = (Vector<?>) f.get(ClassLoader.getSystemClassLoader());
             Iterator<?> iterator = classes.iterator();
             List<Class<?>> classList = new ArrayList<>();
             while (iterator.hasNext()) {
                 Class<?> next = (Class<?>) iterator.next();
-                if(next.getName().startsWith(packageName)) {
+                if (next.getName().startsWith(packageName)) {
                     classList.add(next);
                 }
             }

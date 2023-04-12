@@ -5,9 +5,11 @@ import com.xy.ext.SysTick.SysTickTimeUnit;
 import com.xy.ext.SysTick.SysTockTaskState;
 import com.xy.ext.builder.DbType;
 import com.xy.ext.database.AbsXyJdbc;
-import com.xy.ext.database.sqlite3.SqliteConnectionSysTickTask;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Class <code>H2Db</code>

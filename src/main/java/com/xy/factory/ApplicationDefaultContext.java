@@ -29,6 +29,8 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
 
     private static boolean useDebug = false;
 
+    private static boolean useOldParse = false;
+
     private Consumer<ApplicationContext> beforeWenStartInvoke;
 
     public BeanFactory getBeanFactory() {
@@ -153,6 +155,13 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
         useWeb();
     }
 
+    /**
+     * 使用系统定时任务
+     */
+    public void useSystick() {
+        sysTick.schedule();
+    }
+
     public void useWeb(String host, int port) {
         if (null == host) throw new RuntimeException("Host must not empty!");
         webContext.setPort(port);
@@ -198,5 +207,13 @@ public class ApplicationDefaultContext implements ApplicationContext, AutoClosea
         factory.registerAliveTask(getSysTick());
         factory.enableConnectionKeepAlive();
         regProxyBean(factory);
+    }
+
+    public void useOldParse(boolean use) {
+        useOldParse = use;
+    }
+
+    public boolean isUseOldParse() {
+        return useOldParse;
     }
 }

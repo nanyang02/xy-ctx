@@ -31,9 +31,13 @@ public class RequestHolder {
             this.dispatcher = dispatcher;
             request = new Request(this, socket.getInputStream());
             response = new Response(this, socket.getOutputStream());
-            request.parse();
+            try {
+                request.parse(dispatcher.getDefAppCtx().isUseOldParse());
+            } catch (Exception e) {
+                response.response500("500, Inner fault. can't parse request params.");
+                throw e;
+            }
         } catch (IOException e) {
-            response.response500("500, Inner fault. can't parse request params.");
             e.printStackTrace();
             throw new ParseRequestParamsException();
         }
@@ -57,10 +61,6 @@ public class RequestHolder {
 
     public Response getResponse() {
         return response;
-    }
-
-    public void parse() {
-        request.parse();
     }
 
     public void registerSession(Session session) {

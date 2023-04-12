@@ -4,7 +4,6 @@ import com.xy.web.MsgType;
 import com.xy.web.RequestMethod;
 
 import java.lang.reflect.Method;
-import java.net.Authenticator;
 import java.util.function.Function;
 
 public class MappingDefinition {
@@ -19,7 +18,9 @@ public class MappingDefinition {
     // 对应方法回调函数
     private Function<Object[], Object> call;
     // 请求类型过滤，如果没有标注，默认为空
-    private RequestMethod requestMethod;
+    private RequestMethod[] apiMethodFilter;
+    // API Definition
+    private ApiDefinition apiDefinition;
 
     public MsgType getType() {
         return type;
@@ -61,11 +62,19 @@ public class MappingDefinition {
         this.call = call;
     }
 
-    public RequestMethod getRequestMethod() {
-        return requestMethod;
+    public ApiDefinition getApiDefinition() {
+        return apiDefinition;
     }
 
-    public void setRequestMethod(RequestMethod requestMethod) {
-        this.requestMethod = requestMethod;
+    public void setApiDefinition(ApiDefinition apiDefinition) {
+        this.apiDefinition = apiDefinition;
+    }
+
+    public void setApiMethodFilter(RequestMethod[] methodFilter) {
+        apiMethodFilter = methodFilter;
+    }
+
+    public RequestMethod[] getApiMethodFilter() {
+        return apiMethodFilter;
     }
 }

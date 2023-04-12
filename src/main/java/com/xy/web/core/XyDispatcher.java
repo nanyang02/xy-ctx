@@ -1,6 +1,7 @@
 package com.xy.web.core;
 
 
+import com.xy.factory.ApplicationDefaultContext;
 import com.xy.web.WebUtil;
 import com.xy.web.exceptions.ParseRequestParamsException;
 import com.xy.web.filter.FilterChainFactory;
@@ -32,6 +33,10 @@ public class XyDispatcher extends Thread {
 
     public XyDispatcher(FilterChainFactory filterFactory) {
         fFactory = filterFactory;
+    }
+
+    public ApplicationDefaultContext getDefAppCtx() {
+        return fFactory.getWebContext().getDefaultContext();
     }
 
     /**

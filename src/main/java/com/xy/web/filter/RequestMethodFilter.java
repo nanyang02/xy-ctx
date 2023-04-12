@@ -28,11 +28,18 @@ public class RequestMethodFilter implements Filter {
 
         // 此处提供一个过滤请求类型的过滤
         MappingDefinition m = factory.getWebContext().getMapping().getMapping(req.getPathname());
-        RequestMethod requestMethod = m.getRequestMethod();
+        RequestMethod[] requestMethod = m.getApiMethodFilter();
         if (null != requestMethod) {
             // 检查是否是这个请求的类型
             String reqMethod = req.getRequestParams().getMethod();
-            if (requestMethod.isMatch(reqMethod)) {
+
+            boolean matched = false;
+            for (RequestMethod method : requestMethod) {
+                matched = matched || method.isMatch(reqMethod);
+                if (matched) break;
+            }
+
+            if (matched) {
                 res.response500("不支持的请求类型：" + reqMethod);
 
                 // 不继续向后流转

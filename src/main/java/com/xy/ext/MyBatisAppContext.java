@@ -3,14 +3,15 @@ package com.xy.ext;
 import com.xy.context.BeanConfigure;
 import com.xy.factory.ApplicationDefaultContext;
 import org.apache.ibatis.io.Resources;
-import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 应用上下文,封装好数据源和容器启动初始化的方法调用

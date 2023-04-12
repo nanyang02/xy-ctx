@@ -25,6 +25,7 @@ public class MyTestController {
         return "Hi, Tom";
     }
 
+    @Api(label = "测试", args = "id:str;name:str:zhangsan")
     @RestMapping("/api/test1") // http://localhost:8080/api/test1
     public Object testJson(@Var("id") String id, @Var("name") String name) {
 
@@ -41,6 +42,7 @@ public class MyTestController {
         return map;
     }
 
+    @Api(label = "停服务", desc = "用于通过Api访问的方式关闭服务")
     @RestMapping("/api/shutdown")
     public String showShutDownCmd() {
         return "use '/SHUTDOWN' stop server";

@@ -2,8 +2,7 @@ package com.xy.web;
 
 import com.xy.factory.ApplicationDefaultContext;
 import com.xy.web.cookie.Cookie;
-import com.xy.web.core.RequestHolder;
-import com.xy.web.core.XyDispatcher;
+import com.xy.web.core.*;
 import com.xy.web.header.RequestHeader;
 import com.xy.web.header.ResponseHeader;
 import com.xy.web.session.Session;
@@ -14,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -47,6 +47,9 @@ public class Request {
     private String originHeaderStr;
     private Long contentLength;
     private RequestMethod method;
+
+    private long chunkSize;
+    private int headerSize;
 
     private static int maxDataLimit = 21 * 1024 * 1024;
 
@@ -106,7 +109,194 @@ public class Request {
         return holder.getSession();
     }
 
-    public void parse() {
+
+    public void parse(boolean useOldParse) {
+
+        if(useOldParse) {
+            parseOld();
+            return;
+        }
+
+        Accumulator accumulator = new Accumulator(50 * 1024) {
+
+            int maxInitialLineLength = 4096, maxChunkSize = 8192, maxHeaderSize = 8192;
+
+            @Override
+            public void read0(ByteBuffer buffer, ParseStep step) {
+                for (; ; ) {
+                    switch (step) {
+                        case SKIP_CONTROL_CHARS:
+                            skipControlCharacters(buffer);
+                            step = ParseStep.READ_INITIAL;
+                        case READ_HEADER:
+                            ParseStep nextState = readHeaders(buffer, step);
+
+                            if (nextState == ParseStep.READ_CHUNK_SIZE) {
+                                requestParams.setChunked(true);
+                            } else if (nextState == ParseStep.SKIP_CONTROL_CHARS) {
+                                requestHeader.remove(HttpHeaders.Names.TRANSFER_ENCODING);
+                            } else {
+                                long contentLength = HttpHeaders.getContentLength(requestHeader, -1);
+
+                                if (contentLength == 0 || contentLength == -1) {
+                                    //
+                                }
+
+                                /*
+                                 * 根据不同的状态，做一定的处理, 这里体现一点，定长也许也是超过我们的请求数据的长度，此时需要使用chunk处理
+                                 * */
+                                switch (nextState) {
+                                    // 定长
+                                    case READ_FIXED_LENGTH_CONTENT:
+                                        if (contentLength > maxChunkSize
+                                            // || HttpHeaders.is100ContinueExpected(message)
+                                        ) {
+                                            requestParams.setChunked(true);
+                                            chunkSize = HttpHeaders.getContentLength(requestHeader, -1);
+                                        }
+                                        break;
+                                    // 变长
+                                    case READ_VARIABLE_LENGTH_CONTENT:
+                                        if (buffer.limit() > maxChunkSize
+                                            // || HttpHeaders.is100ContinueExpected(message) // 特殊请求头，暂时不用管
+                                        ) {
+                                            requestParams.setChunked(true);
+                                        }
+                                        break;
+                                    default:
+                                        throw new IllegalStateException("Unexpected state: " + nextState);
+                                }
+                            }
+                            break;
+                        case READ_INITIAL:
+                            String[] initals = readInial(buffer, maxInitialLineLength);
+                            if (null != initals && initals.length < 3) {
+                                step = ParseStep.SKIP_CONTROL_CHARS;
+                            }
+                            requestParams.setMethod(initals[0]);
+                            requestParams.setPath(initals[1]);
+                            requestParams.setHttpVer(initals[2]);
+                            step = ParseStep.READ_HEADER;
+                        case READ_FIXED_LENGTH_CONTENT:
+                            // chunk : 8K / g
+                            // 如果大于最大的块数据，我们需要进行分为多次来进行解析处理，我们需要借助临时文件的方式
+//                            if (chunkSize > maxChunkSize) {
+//                            } else {
+//                            }
+
+                            // 这里我们简化处理，因为都在内存级别来完成，这里存在风险：就是超长问题
+                            if (buffer.remaining() > chunkSize) {
+                                for (int i = 0; i < buffer.remaining(); i++) {
+                                    requestParams.getContent().add(buffer.get());
+                                }
+
+                                // 进行处理
+                                doRequestMethodInvoke(requestParams);
+                                return;
+                            } else {
+                                for (int i = 0; i < buffer.remaining(); i++) {
+                                    requestParams.getContent().add(buffer.get());
+                                }
+                            }
+
+                            break;
+                        case READ_CHUNK_SIZE:
+                            logger.info(">>>>> Chunk Data Parse Not Support !");
+                            break;
+                        case READ_VARIABLE_LENGTH_CONTENT:
+
+                            logger.info(">>>>> Variable Length Not Support !");
+
+                            break;
+                        default:
+                            step = ParseStep.SKIP_CONTROL_CHARS;
+                            return;
+                    }
+                }
+            }
+
+            /**
+             * 读取一下header
+             * @param buffer
+             * @param step
+             * @return
+             */
+            private ParseStep readHeaders(ByteBuffer buffer, ParseStep step) {
+                String line = readHeader(buffer);
+                String name = null;
+                String value = null;
+                if (line.length() != 0) {
+                    do {
+                        char firstChar = line.charAt(0);
+                        if (name != null && (firstChar == ' ' || firstChar == '\t')) {
+                            value = value + ' ' + line.trim();
+                        } else {
+                            if (name != null) {
+                                requestHeader.addHeader(name, value);
+                            }
+                            String[] header = splitHeader(line);
+                            name = header[0];
+                            value = header[1];
+
+                            // 自己定义的解析类型（看后续是否进行移动到其他处处理）
+                            if (value.startsWith("application/json")) {
+                                requestParams.setType(RequestParams.ContentType.JSON);
+                            } else if (value.startsWith("multipart/form-data")) {
+                                requestParams.setType(RequestParams.ContentType.FORMDATA);
+                                int varSplitStart = value.lastIndexOf("=");
+                                requestParams.setVarSplit(value.substring(varSplitStart + 1));
+                            } else if (value.startsWith("application/x-www-form-urlencoded")) {
+                                requestParams.setType(RequestParams.ContentType.FORM_URLENCODED);
+                            }
+                        }
+
+                        line = readHeader(buffer);
+                    } while (line.length() != 0); // 此处的切分原理就是 \r\n\r\n 之间的长度为0，所以就结束了请求头的解析
+
+                    // Add the last header.
+                    if (name != null) {
+                        requestHeader.addHeader(name, value);
+                    }
+                }
+
+                System.out.println("headers -> " + requestHeader.getHeaderStr());
+                // 这里解决一个问题就是：根据请求头，自动的对后续的解析进行处理，进入不同的处理通道。
+                if (requestHeader.isChunked()) {
+
+                    // 块都作为formDate方式提交
+                    requestParams.setType(RequestParams.ContentType.FORMDATA);
+
+                    step = ParseStep.READ_CHUNK_SIZE;
+                } else if (HttpHeaders.getContentLength(requestHeader, -1) >= 0) {
+                    step = ParseStep.READ_FIXED_LENGTH_CONTENT;
+                }
+
+                return step;
+            }
+
+            @Override
+            public void clientDisConnect(Exception e) {
+
+            }
+        };
+        accumulator.doRead(input);
+    }
+
+    private void doRequestMethodInvoke(RequestParams requestParams) {
+        if (RequestMethod.GET.isMatch(requestParams.getMethod())) {
+            try {
+                WebUtil.doParseGet(requestParams);
+                pathname = requestParams.getPath();
+            } catch (Exception e) {
+                logger.error("Get 请求解析出错", e);
+            }
+        } else {
+            pathname = requestParams.getPath();
+            doParseData(requestParams, getDataStr(new StringBuilder(), requestParams.getContent()));
+        }
+    }
+
+    private void parseOld() {
         // Read a set of characters from the socket
         // 初始容量设置为 10M 字符容量
         StringBuilder request = new StringBuilder(maxDataLimit);
@@ -224,6 +414,7 @@ public class Request {
             String bodyContent = getDataStr(request, dataList);
             // 如果没有数据就不用解析了，上面将头解析完成就完成了
             if (bodyContent.length() > 0) {
+
                 doParseData(requestParams, bodyContent);
             }
         }

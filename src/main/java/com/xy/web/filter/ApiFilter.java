@@ -8,6 +8,7 @@ import com.xy.web.WebUtil;
 import com.xy.web.annotation.Json;
 import com.xy.web.annotation.Var;
 import com.xy.web.cookie.Cookie;
+import com.xy.web.core.ApiDefinition;
 import com.xy.web.core.MappingDefinition;
 import com.xy.web.header.RequestHeader;
 import com.xy.web.header.ResponseHeader;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,6 +53,20 @@ public class ApiFilter implements Filter {
     @Override
     public void doFilter(Request req, Response res, FilterChain chain) throws IOException {
         String pathname = req.getPathname();
+
+        if (factory.getWebContext().getApisUrl().equals(pathname)) {
+            try {
+                List<ApiDefinition> apiDefinitions = factory.getWebContext().getMapping().getApiDeinitions();
+                res.responseData(JSONObject.toJSONString(apiDefinitions), false);
+                return;
+            } catch (Exception e) {
+                logger.error("apis definition parse fail", e);
+                String message = e.getMessage();
+                res.response500(message);
+                return;
+            }
+        }
+
 
         if (factory.getWebContext().enableDebugLog()) {
             logger.info("API# {}", req.getPathname());

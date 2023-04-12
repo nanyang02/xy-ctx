@@ -17,6 +17,7 @@ public class SysTick {
 
     private Timer timer;
     ApplicationContext ctx;
+    TimerTask task;
     private Queue<SysTickTask> queue = new ArrayDeque<>(100);
 
     /**
@@ -33,7 +34,7 @@ public class SysTick {
         ctx.regSingleton(this);
         timer = new Timer("SysTickTimer");
         queue.add(new IdeTickTask());
-        TimerTask task = new TimerTask() {
+        task = new TimerTask() {
             public void run() {
                 try {
                     while (true) {
@@ -52,8 +53,11 @@ public class SysTick {
                 }
             }
         };
-        timer.schedule(task, 1000L, 1000L);
+
     }
 
+    public void schedule() {
+        timer.schedule(task, 1000L, 1000L);
+    }
 
 }

@@ -4,14 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.xy.web.annotation.Json;
 import com.xy.web.annotation.Var;
-import com.xy.web.cookie.Cookie;
-import com.xy.web.core.MappingDefinition;
-import com.xy.web.header.RequestHeader;
-import com.xy.web.header.ResponseHeader;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.annotation.Annotation;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -56,7 +51,6 @@ public class WebUtil {
         }
         return arr;
     }
-
 
     public static Object parseAnnoJson(Map<String, Object> argsMap, String bodyJson, Json json, Class<?> type) {
         String val = "";
@@ -179,6 +173,19 @@ public class WebUtil {
         } else {
             instace.setPath(url);
         }
+    }
+
+    // 完成Mapping在controller上的标注的融入
+    public static String concatPath(String b, String e) {
+        if ("/".equals(b)) {
+            b = "";
+        } else if (b.length() > 1) {
+            if ('/' != b.charAt(0)) b = '/' + b;
+            if (b.length() > 1 && '/' == b.charAt(b.length() - 1)) b = b.substring(0, b.length() - 1);
+        }
+
+        if (e.length() > 0 && '/' != e.charAt(0)) e = '/' + e;
+        return b + e;
     }
 
 }

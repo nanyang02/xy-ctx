@@ -3,10 +3,7 @@ package com.xy.web;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Class <code>RequestParams</code>
@@ -23,15 +20,28 @@ public class RequestParams {
         return new RequestParams();
     }
 
+    public void setChunked(boolean b) {
+        isChunk = b;
+    }
+
+    public boolean isChunked() {
+        return isChunk;
+    }
+
     public enum ContentType {
         JSON, FORM_URLENCODED, FORMDATA
     }
 
-    private String path, method, contentType, bodyJson, varSplit;
+    private Boolean isChunk = false;
+
+    private String path, method, contentType, bodyJson, varSplit, httpVer;
     // 用于存放formData参数和get请求参数kv
     private Map<String, Object> params = new HashMap<>();
     private List<UploadFile> files = new ArrayList<>();
     private ContentType type = ContentType.FORM_URLENCODED;
+
+    // 创建一个用于存放数据的content
+    private LinkedList<Byte> content = new LinkedList<>();
 
 }
 

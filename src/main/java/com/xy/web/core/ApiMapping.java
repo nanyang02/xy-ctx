@@ -1,17 +1,19 @@
 package com.xy.web.core;
 
 import com.xy.web.MsgType;
-import com.xy.web.annotation.Mapping;
-import com.xy.web.annotation.RequestMapping;
-import com.xy.web.annotation.RestMapping;
-import com.xy.web.annotation.ToJson;
+import com.xy.web.RequestMethod;
+import com.xy.web.WebUtil;
+import com.xy.web.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Class <code>ControllerMapping</code>
@@ -45,19 +47,6 @@ public class ApiMapping {
         mm.put(mapping, definition);
     }
 
-    // 完成Mapping在controller上的标注的融入
-    private static String concatPath(String b, String e) {
-        if ("/".equals(b)) {
-            b = "";
-        } else if (b.length() > 1) {
-            if ('/' != b.charAt(0)) b = '/' + b;
-            if (b.length() > 1 && '/' == b.charAt(b.length() - 1)) b = b.substring(0, b.length() - 1);
-        }
-
-        if (e.length() > 0 && '/' != e.charAt(0)) e = '/' + e;
-        return b + e;
-    }
-
     /**
      * 添加一个控制层的映射，自动解析放入到map中
      *
@@ -79,6 +68,8 @@ public class ApiMapping {
             RequestMapping m2 = method.getAnnotation(RequestMapping.class);
             RestMapping m3 = method.getAnnotation(RestMapping.class);
             ToJson toJson = method.getAnnotation(ToJson.class);
+            Api api = method.getAnnotation(Api.class);
+            MethodFilter methodFilter = method.getAnnotation(MethodFilter.class);
 
             if (null == m2 && null == m3 && null == m1) continue;
 
@@ -110,13 +101,35 @@ public class ApiMapping {
                 definition.setType(MsgType.JSON);
             }
 
+            if (null != methodFilter)
+                definition.setApiMethodFilter(methodFilter.value());
+
+            // 补充一些功能 API
+            if (null != api) {
+                definition.setApiDefinition(new ApiDefinition()
+                        .setLabel(api.label())
+                        .setDesc(api.desc()).setUrl(definition.getMapping())
+                        .setHostPort("http://" + ctx.getHostPort())
+                        .generalDefArgs(api.args())
+                );
+                if (null != methodFilter) {
+                    definition.getApiDefinition().setAcceptRequestMethods(methodFilter.value());
+                } else {
+                    definition.getApiDefinition().setAcceptRequestMethods(new RequestMethod[]{RequestMethod.GET, RequestMethod.POST});
+                }
+            }
+
+
             register(definition.getMapping(), definition);
         }
     }
 
     private void fillUrlMapping(MappingDefinition definition, String ctx, String controller, String method, MsgType type) {
-        definition.setMapping(concatPath(concatPath(ctx, controller), method));
+        definition.setMapping(WebUtil.concatPath(WebUtil.concatPath(ctx, controller), method));
         definition.setType(type);
     }
 
+    public List<ApiDefinition> getApiDeinitions() {
+        return mm.values().stream().map(MappingDefinition::getApiDefinition).filter(Objects::nonNull).collect(Collectors.toList());
+    }
 }

@@ -2,7 +2,6 @@ package com.xy.web.filter;
 
 import com.xy.web.Request;
 import com.xy.web.Response;
-import com.xy.web.core.MappingDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

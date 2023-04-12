@@ -1,7 +1,5 @@
 package com.xy.ext.SysTick;
 
-import java.util.Date;
-
 /**
  * Class <code>SysTickTimeUnit</code>
  *

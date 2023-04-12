@@ -5,8 +5,10 @@ import com.xy.ext.builder.XyJdbc;
 import com.xy.ext.builder.dto.ConvertResultSetToEntity;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -49,16 +51,18 @@ public abstract class AbsXyJdbc implements XyJdbc {
             PreparedStatement statement = getConn().prepareStatement(sql);
             pst.accept(statement);
             ResultSet resultSet = statement.executeQuery();
-            if (singleType.name().equals(RsSingleType.INT.name())) {
-                t = resultSet.getInt(1);
-            } else if (singleType.name().equals(RsSingleType.BOOL.name())) {
-                t = resultSet.getBoolean(1);
-            } else if (singleType.name().equals(RsSingleType.DATE.name())) {
-                t = resultSet.getDate(1);
-            } else if (singleType.name().equals(RsSingleType.DOUBLE.name())) {
-                t = resultSet.getDouble(1);
-            } else {
-                t = resultSet.getString(1);
+            if (resultSet.next()) {
+                if (singleType.name().equals(RsSingleType.INT.name())) {
+                    t = resultSet.getInt(1);
+                } else if (singleType.name().equals(RsSingleType.BOOL.name())) {
+                    t = resultSet.getBoolean(1);
+                } else if (singleType.name().equals(RsSingleType.DATE.name())) {
+                    t = resultSet.getDate(1);
+                } else if (singleType.name().equals(RsSingleType.DOUBLE.name())) {
+                    t = resultSet.getDouble(1);
+                } else {
+                    t = resultSet.getString(1);
+                }
             }
             resultSet.close();
             statement.close();

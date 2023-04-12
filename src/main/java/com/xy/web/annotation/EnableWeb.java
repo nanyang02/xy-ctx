@@ -7,5 +7,6 @@ import java.lang.annotation.*;
 @Documented
 public @interface EnableWeb {
     String value() default "";
+
     boolean useHotLoad() default false;
 }

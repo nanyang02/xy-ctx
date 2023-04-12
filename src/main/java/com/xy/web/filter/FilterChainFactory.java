@@ -4,7 +4,6 @@ import com.xy.web.core.WebContext;
 
 import java.util.ArrayDeque;
 import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  * Class <code>FileChainFactory</code>

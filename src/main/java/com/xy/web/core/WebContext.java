@@ -3,6 +3,7 @@ package com.xy.web.core;
 import com.xy.beans.BeanDefine;
 import com.xy.factory.ApplicationDefaultContext;
 import com.xy.stereotype.Controller;
+import com.xy.web.WebUtil;
 import com.xy.web.filter.*;
 import com.xy.web.session.Session;
 
@@ -24,8 +25,12 @@ public class WebContext {
     private XyDispatcher dispatcher;
     private ApplicationDefaultContext defaultContext;
 
-    private String contextPath = "", host = "localhost", webroot = "webroot";
+    private String contextPath = "", host = "localhost", webroot = "webroot", apisUrl;
     private int port = 8080;
+
+    public String getHostPort() {
+        return host + ":" + port;
+    }
 
     public boolean enableDebugLog() {
         return defaultContext.isUseDebug();
@@ -47,6 +52,10 @@ public class WebContext {
 
     public void setHost(String host) {
         this.host = host;
+    }
+
+    public ApplicationDefaultContext getDefaultContext() {
+        return defaultContext;
     }
 
     public void init() {
@@ -140,6 +149,15 @@ public class WebContext {
                 parseController(defaultContext.getBeanFactory().getBean(value.getTargetClass()));
             }
         }
+
+        apisUrl = WebUtil.concatPath(contextPath, "ctx/apis");
+
+        // 注册一下全局API
+        mapping.register(apisUrl, new MappingDefinition());
+    }
+
+    public String getApisUrl() {
+        return apisUrl;
     }
 
     public boolean isRunning() {
