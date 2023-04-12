@@ -1,4 +1,4 @@
-package com.xy.controller;
+package com.xy.dto;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -13,6 +13,6 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class UserInfo {
 
-    private String username,password,type, accountName, email, phone;
+    private String username, password, type, accountName, email, phone;
 
 }

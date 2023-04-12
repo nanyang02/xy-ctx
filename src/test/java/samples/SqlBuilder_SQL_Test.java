@@ -1,4 +1,4 @@
-package com.xy;
+package samples;
 
 import com.xy.ext.builder.DbType;
 import com.xy.ext.builder.XySqlFactory;
@@ -59,7 +59,6 @@ public class SqlBuilder_SQL_Test {
                 .printSql()
                 .getPreSql();
     }
-
 
 
 }

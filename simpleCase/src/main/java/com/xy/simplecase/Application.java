@@ -14,6 +14,7 @@ public class Application {
 
     /**
      * 使用main方法启动容器上下文，提供容器服务支持
+     *
      * @param args
      */
     public static void main(String[] args) {
@@ -29,7 +30,7 @@ public class Application {
     @RequestMapping(value = "/getHome", type = RequestMapping.Type.JSON)
     public String getHomePath() {
         logger.info(home);
-        String json = "{\"home\": \""+home+"\"}";
+        String json = "{\"home\": \"" + home + "\"}";
         return json;
     }
 

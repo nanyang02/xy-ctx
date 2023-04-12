@@ -1,5 +1,7 @@
 package com.xy.controller;
 
+import com.xy.dto.IdNameBo;
+import com.xy.dto.UserInfo;
 import com.xy.stereotype.Controller;
 import com.xy.web.UploadFile;
 import com.xy.web.annotation.*;

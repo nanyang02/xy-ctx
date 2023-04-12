@@ -14,9 +14,8 @@ public class WebServer {
 
     private ApplicationDefaultContext ctx;
 
-
     @Test
-    public void x() {
+    public void start() {
         ctx = new MyBatisAppContext();
         ctx.scan("com.xy.controller");
         ctx.enableDebugLog(true);

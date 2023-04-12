@@ -1,4 +1,4 @@
-package com.xy.mappper;
+package com.xy.service;
 
 import org.apache.ibatis.annotations.Select;
 

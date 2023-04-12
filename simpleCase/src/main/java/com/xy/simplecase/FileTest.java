@@ -9,18 +9,16 @@ package com.xy.simplecase;
 public class FileTest {
 
 
-
     public static void main(String[] args) {
         int head = 11;
         int size = 9;
 
 
-        int x = (head+1) & (size-1);
+        int x = (head + 1) & (size - 1);
 
         System.out.println(x);
 
     }
-
 
 
 }

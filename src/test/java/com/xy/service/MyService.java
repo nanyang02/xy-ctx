@@ -8,4 +8,6 @@ package com.xy.service;
  */
 public interface MyService {
     void sayhi();
+
+    void eatApple();
 }
