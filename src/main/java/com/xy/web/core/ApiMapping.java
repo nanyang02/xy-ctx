@@ -110,7 +110,7 @@ public class ApiMapping {
                         .setLabel(api.label())
                         .setDesc(api.desc()).setUrl(definition.getMapping())
                         .setHostPort("http://" + ctx.getHostPort())
-                        .generalDefArgs(api.args())
+                        .generalDefArgs(api.args(), definition.getMappingMethod())
                 );
                 if (null != methodFilter) {
                     definition.getApiDefinition().setAcceptRequestMethods(methodFilter.value());

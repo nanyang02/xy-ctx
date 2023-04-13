@@ -1,7 +1,9 @@
 package samples;
 
+import com.alibaba.fastjson.JSON;
 import com.xy.ext.builder.DbType;
 import com.xy.ext.builder.XySqlFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 
 /**
@@ -10,6 +12,7 @@ import org.junit.Test;
  * @author yangnan 2023/1/17 16:36
  * @since 1.8
  */
+@Slf4j
 public class SqlBuilder_SQL_Test {
 
     XySqlFactory factory = new XySqlFactory(DbType.SQLite3, "db.db");
@@ -60,5 +63,14 @@ public class SqlBuilder_SQL_Test {
                 .getPreSql();
     }
 
+    @Test
+    public void testObjectJson() {
+        Object inf = new Object() {
+            public String name = "张山";
+            public Integer age = 18;
+        };
+
+        log.info("Object Json: {}", JSON.toJSON(inf));
+    }
 
 }

@@ -1,14 +1,19 @@
 package com.xy.web.core;
 
+import com.xy.web.Request;
 import com.xy.web.RequestMethod;
+import com.xy.web.Response;
+import com.xy.web.cookie.Cookie;
+import com.xy.web.header.RequestHeader;
+import com.xy.web.header.ResponseHeader;
+import com.xy.web.session.Session;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.URLEncoder;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Class <code>ApiDefinition</code>
@@ -26,29 +31,29 @@ public class ApiDefinition {
 
     private RequestMethod[] acceptRequestMethods;
 
-    public ApiDefinition generalDefArgs(String args) {
+    public ApiDefinition generalDefArgs(String args, Method method) {
         String trim = args.trim();
         this.args = trim;
-
-        StringBuilder urlPars = new StringBuilder("?");
-        String[] argss = trim.split(";");
-        for (String arg : argss) {
-            String[] arg_type = arg.split(":");
-            if (arg_type.length < 2 || arg_type.length > 3) continue;
-            String def = arg_type.length == 3 ? arg_type[2] : null;
-            Object defVal = generalValue(arg_type[1], def);
-            defArgs.put(arg_type[0], defVal);
-            try {
-                urlPars.append(urlPars.length() == 1 ? "" : "&").append(arg_type[0]).append("=").append(
-                        defVal == null ? "" :
-                                URLEncoder.encode(defVal.toString(), "UTF-8")
-                );
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+        if (trim.length() > 0) {
+            StringBuilder urlPars = new StringBuilder("?");
+            String[] argss = trim.split(";");
+            for (String arg : argss) {
+                String[] arg_type = arg.split(":");
+                if (arg_type.length < 2 || arg_type.length > 3) continue;
+                String def = arg_type.length == 3 ? arg_type[2] : null;
+                Object defVal = generalValue(arg_type[1], def);
+                defArgs.put(arg_type[0], defVal);
+                try {
+                    urlPars.append(urlPars.length() == 1 ? "" : "&").append(arg_type[0]).append("=").append(
+                            defVal == null ? "" :
+                                    URLEncoder.encode(defVal.toString(), "UTF-8")
+                    );
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
             }
+            defUrlArgs = urlPars.toString();
         }
-
-        defUrlArgs = urlPars.toString();
         return this;
     }
 
@@ -64,6 +69,8 @@ public class ApiDefinition {
                 return Boolean.parseBoolean(def);
             case "date":
                 return null == def ? new Date() : def;
+            case "json":
+                return null == def ? "{}" : def;
             default:
                 return null;
         }
