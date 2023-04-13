@@ -7,7 +7,8 @@ package com.xy.web;
  * @since 1.8
  */
 public enum RequestMethod {
-    GET, POST, DELETE, PUT;
+    GET, POST, HEAD, PUT, OPTIONS, DELETE, TRACE,
+    CONNECT, MOVE, PROXY, PRI;
 
     public static RequestMethod match(String name) {
         return GET.isMatch(name) ? GET
@@ -19,6 +20,15 @@ public enum RequestMethod {
 
     public boolean isMatch(RequestMethod o) {
         return isMatch(o.name());
+    }
+
+    public static RequestMethod fromStr(String name) {
+        for (RequestMethod value : values()) {
+            if (value.name().toLowerCase().equals(name.toLowerCase())) {
+                return value;
+            }
+        }
+        return null;
     }
 
     public boolean isMatch(String name) {

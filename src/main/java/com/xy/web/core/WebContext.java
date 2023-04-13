@@ -6,6 +6,8 @@ import com.xy.stereotype.Controller;
 import com.xy.web.WebUtil;
 import com.xy.web.filter.*;
 import com.xy.web.session.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -17,6 +19,7 @@ import java.util.Set;
  * @since 1.8
  */
 public class WebContext {
+    private Logger logger = LoggerFactory.getLogger("mvc");
 
     private ApiMapping mapping;
 
@@ -151,6 +154,7 @@ public class WebContext {
         }
 
         apisUrl = WebUtil.concatPath(contextPath, "ctx/apis");
+        logger.info("Add Inner Api http://{}{}", getHostPort(), apisUrl);
 
         // 注册一下全局API
         mapping.register(apisUrl, new MappingDefinition());
