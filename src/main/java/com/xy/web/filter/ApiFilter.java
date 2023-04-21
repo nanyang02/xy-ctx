@@ -116,7 +116,13 @@ public class ApiFilter implements Filter {
             }
         }
 
-        Object apply = definition.getCall().apply(args);
+        Object apply = null;
+        try {
+            apply = definition.getCall().apply(args);
+        } catch (Exception e) {
+            logger.error("Error occur when call service api!", e);
+            res.response500("Server catch unknown exception.");
+        }
 
         // 如果用户取了输出，那么就由用户自己去实现输出
         if (userResponse) {

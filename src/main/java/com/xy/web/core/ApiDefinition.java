@@ -1,15 +1,16 @@
 package com.xy.web.core;
 
+import com.xy.web.ApiContentType;
 import com.xy.web.RequestMethod;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Class <code>ApiDefinition</code>
@@ -26,6 +27,8 @@ public class ApiDefinition {
     private Map<String, Object> defArgs = new HashMap<>();
 
     private RequestMethod[] acceptRequestMethods;
+
+    private ApiContentType contentType;
 
     public ApiDefinition generalDefArgs(String args, Method method) {
         String trim = args.trim();
@@ -60,7 +63,8 @@ public class ApiDefinition {
             case "int":
                 return null == def ? 0 : Integer.parseInt(def);
             case "str":
-                return null == def ? "string" : def;
+            case "mv":
+                return null == def ? "" : def;
             case "bool":
                 return Boolean.parseBoolean(def);
             case "date":
@@ -71,4 +75,57 @@ public class ApiDefinition {
                 return null;
         }
     }
+
+    /**
+     * 通过kv的方式来解析数据
+     *
+     * @param kvs
+     * @return
+     */
+    public ApiDefinition generalKvs(String[] kvs) {
+        String k = "";
+        for (int i = 0; i < kvs.length; i++) {
+            if (i % 2 == 0) {
+                k = kvs[i];
+            } else {
+                String vt = kvs[i];
+                String[] vts = vt.split(":");
+                String tp = vts.length == 1 ? "mv" : vts[1];
+                defArgs.put(k, generalValue(tp, vts[0]));
+            }
+        }
+        return this;
+    }
+
+    public ApiDefinition generalDto(Class<?> dtoClass) {
+        if (!void.class.getName().equals(dtoClass.getName())) {
+            Field[] fields = dtoClass.getDeclaredFields();
+            for (Field field : fields) {
+                String fdName = field.getType().getName();
+                String signature = field.toGenericString();
+                String name = dtoClass.getName();
+                String prop = signature.substring(signature.indexOf(name) + name.length() + 1);
+                boolean isArray = signature.contains("[]");
+
+                Object val = isArray ? new ArrayList<>()
+                        : fdName.equals(String.class.getName()) ? generalValue("str", "str")
+                        : fdName.equals(Integer.class.getName()) ? generalValue("int", null)
+                        : fdName.equals(Long.class.getName()) ? generalValue("int", null)
+                        : fdName.equals(Short.class.getName()) ? generalValue("int", null)
+                        : fdName.equals(Byte.class.getName()) ? generalValue("int", null)
+                        : fdName.equals(Double.class.getName()) ? generalValue("num", null)
+                        : fdName.equals(Float.class.getName()) ? generalValue("num", null)
+                        : fdName.equals(BigDecimal.class.getName()) ? generalValue("num", null)
+                        : fdName.equals(Date.class.getName()) ? generalValue("date", null)
+                        : fdName.equals(Boolean.class.getName()) ? generalValue("bool", null)
+                        : field.getType().isAssignableFrom(Map.class) ? generalValue("json", null)
+                        : field.getType().isAssignableFrom(Collection.class) ? generalValue("json", null)
+                        : "{}";
+
+                defArgs.put(prop, val);
+            }
+        }
+        return this;
+    }
+
 }

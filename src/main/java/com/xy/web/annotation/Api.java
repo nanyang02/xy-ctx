@@ -1,5 +1,7 @@
 package com.xy.web.annotation;
 
+import com.xy.web.ApiContentType;
+
 import java.lang.annotation.*;
 
 /**
@@ -13,6 +15,14 @@ import java.lang.annotation.*;
 @Documented
 public @interface Api {
     String label() default "";
+
     String desc() default "";
+
     String args() default "";
+
+    String[] kvs() default {};
+
+    ApiContentType apiContentType() default ApiContentType.json;
+
+    Class<?> dtoClass() default void.class;
 }

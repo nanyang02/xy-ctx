@@ -1,0 +1,399 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Api Doc</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            list-style: none;
+        }
+
+        #app {
+            display: flex;
+            height: 100%;
+        }
+
+        .body-left {
+            min-width: 400px;
+            width: 40%;
+            /*border-right: 1px solid darkgrey;*/
+            padding: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .body-left > div > .refush {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            background: deepskyblue;
+            padding: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            color: white;
+            display: flex;
+        }
+
+        .body-left > div > .refush:hover {
+            background: darkturquoise;
+            color: bisque;
+        }
+
+        .body-left > ul {
+            border-top: 1px solid gray;
+            padding-top: 20px;
+            /*height: 600px;*/
+            overflow-y: scroll;
+            flex-grow: 1;
+        }
+
+        .body-left > div {
+            flex-grow: 0.1;
+        }
+
+        .body-left > div > p {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid darkgrey;
+            color: brown;
+            display: flex;
+        }
+
+        .body-left > ul > li {
+            padding-top: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .body-right {
+            min-width: 600px;
+            width: 60%;
+            height: inherit;
+            /*border: 1px solid darkgrey;*/
+        }
+
+        .api-h-url {
+            height: 100px;
+            /*border-bottom: 1px solid red;*/
+            padding: 10px;
+        }
+
+        .api-h-url > p > span {
+            /*padding-left: 10px;*/
+        }
+
+        .api-h-url > span > span {
+            padding-left: 10px;
+            color: blue;
+            font-weight: bold;
+        }
+
+        .api-h-title {
+            position: relative;
+        }
+
+        .api-h-title > div > b {
+            color: darkmagenta;
+            display: flex;
+            font-size: small;
+            height: 1.2rem;
+            cursor: help;
+        }
+
+        .api-h-title > .first {
+            position: relative;
+            height: 1.3rem;
+        }
+
+        .api-h-title > .desc, .api-h-url .desc {
+            font-size: small;
+            display: flex;
+        }
+
+        .api-h-title > .desc > span, .api-h-url .desc > span {
+            color: #aaa;
+        }
+
+        .api-h-title > .first > span {
+            color: white;
+            font-size: larger;
+            position: absolute;
+            right: 0.5rem;
+            top: 0;
+            cursor: pointer;
+            text-align: center;
+            border: 2px solid white;
+        }
+
+        .api-h-title > .first > span:hover {
+            border: 2px solid purple;
+        }
+
+        .api-h-args > textarea, .api-h-result > textarea {
+            height: 160px;
+            width: 500px;
+            overflow-y: scroll;
+            resize: none;
+        }
+
+        .api-h-args > p, .api-h-result > p {
+            margin-left: 10px;
+            color: darkmagenta;
+            font-weight: bold;
+        }
+
+        .api-h-args > textarea {
+            color: darkmagenta;
+            font-weight: bold;
+        }
+
+        .body-left-title {
+            display: flex;
+            /*justify-content: center;*/
+            align-items: center;
+        }
+
+        .icon-clk-b {
+            display: inline-block;
+            height: 31px;
+            width: 30px;
+            background: url("./icon-a.png") -102px -30px;
+        }
+
+        .icon-arrow-m {
+            display: inline-block;
+            height: 20px;
+            width: 20px;
+            background: url(./icon-a.png) -66px -100px;
+        }
+
+        .icon-water-s {
+            display: inline-block;
+            height: 16px;
+            width: 16px;
+            background: url(./icon-a.png) -66px -32px;
+        }
+
+        .icon-water-m {
+            display: inline-block;
+            height: 20px;
+            width: 20px;
+            background: url(./icon-a.png) -82px -40px;
+        }
+
+        .icon-fd-m {
+            display: inline-block;
+            height: 20px;
+            width: 20px;
+            background: url(./icon-a.png) -82px -60px;
+        }
+
+        .icon-rfsh-m {
+            display: inline-block;
+            height: 20px;
+            width: 20px;
+            background: url(./icon-a.png) -82px 0;
+        }
+
+        .icon-qq-s {
+            display: inline-block;
+            height: 16px;
+            width: 16px;
+            background: url(./icon-a.png) -66px -64px;
+        }
+
+        .icon-fd-s {
+            display: inline-block;
+            height: 16px;
+            width: 16px;
+            background: url(./icon-a.png) -66px -48px;
+        }
+
+        .icon-hand-m {
+            display: inline-block;
+            height: 24px;
+            width: 35px;
+            background: url(./icon-a.png) 0px -125px;
+        }
+
+        .api-h-result pre {
+            border: 1px solid darkgrey;
+            height: 260px;
+            width: 500px;
+            overflow-y: scroll;
+            color: cadetblue;
+            font-weight: bold;
+        }
+    </style>
+    <script src="vue-2.6.10.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="body-left">
+        <div>
+            <div class="refush" @click="reloadApis"><i class="icon-rfsh-m"></i>刷新</div>
+            <div class="body-left-title"><i class="icon-clk-b"></i>
+                <h2>Api接口文档及测验</h2></div>
+            <p><i class="icon-arrow-m"></i>此处是当前服务中默认标注有@Api注解的服务接口</p>
+        </div>
+        <ul>
+            <li v-for="item,idx in apis" :key="idx">
+                <div class="api-h-title">
+                    <div class="first"><b :title="item.url"><i class="icon-water-m"></i><span :title="item.desc">功能: {{item.label}}</span></b>
+                        <span @click="chooseThis(item)"><i class="icon-hand-m"></i></span></div>
+                    <!--<div class="desc"><i class="icon-qq-s"></i><span>功能描述: {{item.desc || ''}}</span></div>-->
+                    <div class="desc"><i class="icon-fd-s"></i><span> URL: {{item.url || ''}}</span></div>
+                </div>
+            </li>
+        </ul>
+    </div>
+    <div class="body-right">
+        <div class="api-d-body">
+            <div class="api-h-url">
+                <span><b><i class="icon-fd-s"></i>URL: </b><span>{{api.hostPort}}{{api.url}}</span></span>
+                <p>
+                    <b><i class="icon-water-s"></i>功能: </b><span>{{api.label}}</span>
+                    <br/>
+                    <span class="desc"><b><i class="icon-qq-s"></i>描述: </b><span>{{api.desc}}</span></span>
+                </p>
+            </div>
+            <div class="api-h-args">
+                <p><i class="icon-arrow-m"></i>请求参数</p>
+                <textarea v-model="paramStr"></textarea>
+            </div>
+            <div class="api-h-result">
+                <p><i class="icon-arrow-m"></i>请求结果</p>
+                <pre v-text="result">
+                </pre>
+            </div>
+            <div class="api-h-act">
+                <div class="act-post">
+                    <button @click="sendPost(api.url, api.contentType)">Post发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.getElId = () => {
+        if (window.elCounter === undefined) {
+            window.elCounter = 1;
+        }
+        return window.elCounter++;
+    };
+
+    const vue = new Vue({
+        el: "#app",
+        data() {
+            return {
+                apis: [],
+                api: {
+                    url: "",
+                    label: "",
+                    desc: "",
+                    defArgs: {}
+                },
+                paramStr: "",
+                query: undefined,
+                result: {
+                    data: undefined,
+                    msg: undefined
+                }
+            }
+        },
+        watch: {
+            paramStr: (n, o) => {
+                let parse = JSON.parse(n);
+                vue.query = parse || {};
+            }
+        },
+        methods: {
+            reloadApis() {
+                this.post("/ctx/apis", {}, (res, msg) => {
+                    this.apis = res;
+                }, msg => {
+                    alert("发生错误：" + msg);
+                })
+            },
+            changeArgs(e) {
+                console.log(e)
+            },
+            chooseThis(api) {
+                this.api = api;
+                this.paramStr = JSON.stringify(api.defArgs, null, 2);
+            },
+            sendPost(url, ctype) {
+                this.post(
+                    url, this.query,
+                    res => this.result.data = res.data ? res.data : res,
+                    msg => this.result.msg = msg,
+                    {ctype}
+                )
+            },
+            post(url, param, success, error, opts) {
+                const jsonContentType = 'application/json; charset=utf-8';
+                const defOpts = {
+                    contentType: jsonContentType,
+                    timeout: 60000
+                };
+                const isJson = opts && opts.ctype === 'json';
+                const xhr = new XMLHttpRequest();
+                xhr.timeout = defOpts.timeout;
+                xhr.ontimeout = function (event) {
+                    alert("请求超时！");
+                };
+                xhr.open('POST', url);
+                if (isJson) {
+                    xhr.setRequestHeader('content-type', defOpts.contentType);
+                }
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        const inf = {
+                            rel: null
+                        };
+                        try {
+                            inf.rel = JSON.parse(xhr.responseText);
+                        } catch (e) {
+                            success(xhr.responseText);
+                            return;
+                        }
+                        const {rel} = inf;
+                        const strMsg = rel.msg ? rel.msg : rel.message ? rel.message : "";
+                        if (rel.success !== undefined) {
+                            if (rel.success && success) {
+                                success(rel, strMsg);
+                            } else if (error) {
+                                error(strMsg);
+                            }
+                        } else if (rel.code !== undefined) {
+                            if (rel.code === 0 && success) {
+                                success(rel, strMsg);
+                            } else if (error) {
+                                error(strMsg);
+                            }
+                        } else {
+                            success(rel, strMsg);
+                        }
+                    }
+                };
+                if (isJson) {
+                    xhr.send(JSON.stringify(param || {}))
+                } else {
+                    const fmData = new FormData();
+                    Object.keys(fmData).forEach(k => fmData.append(k, param[k]));
+                    xhr.send(fmData)
+                }
+            }
+        },
+        created() {
+            this.reloadApis()
+        }
+    })
+
+</script>
+
+</body>
+</html>

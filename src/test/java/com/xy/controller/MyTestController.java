@@ -3,6 +3,7 @@ package com.xy.controller;
 import com.xy.dto.IdNameBo;
 import com.xy.dto.UserInfo;
 import com.xy.stereotype.Controller;
+import com.xy.web.ApiContentType;
 import com.xy.web.UploadFile;
 import com.xy.web.annotation.*;
 
@@ -20,12 +21,13 @@ import java.util.Map;
 @Controller
 public class MyTestController {
 
+    @Api(label = "apiTest", desc = "简单的测试")
     @RequestMapping("/api/test")
     public String testPlain() {
         return "Hi, Tom";
     }
 
-    @Api(label = "测试", args = "id:str;name:str:zhangsan")
+    @Api(label = "测试", args = "id:str;name:str:zhangsan", apiContentType = ApiContentType.formdata)
     @RestMapping("/api/test1") // http://localhost:8080/api/test1
     public Object testJson(@Var("id") String id, @Var("name") String name) {
 
@@ -48,12 +50,15 @@ public class MyTestController {
         return "use '/SHUTDOWN' stop server";
     }
 
-
+    @Api(label = "获取人员的信息", desc = "通过传入用户的信息来转换成用户的信息", dtoClass = UserInfo.class)
     @RestMapping("/api/getUserInfo")
     public UserInfo getUserInfo(@Json UserInfo userInfo) {
         return userInfo;
     }
 
+    @Api(label = "idName测试", desc = "通过接收两个参数来实现参数的接收",
+            apiContentType = ApiContentType.formdata,
+            kvs = {"id", "1", "name", "王五"})
     @RestMapping("/api/getIdName")
     public IdNameBo getIdName(@Var("id") String id, @Var("name") String name) {
         return new IdNameBo().setId(id).setName(name);

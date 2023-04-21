@@ -82,7 +82,7 @@ public class ApiMapping {
                     return method.invoke(controller, args);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     logger.error("Invoke Method[" + method.getName() + "] fail.", e);
-                    return null;
+                    throw new RuntimeException(e);
                 }
             });
             definition.setMappingMethod(method);
@@ -109,8 +109,11 @@ public class ApiMapping {
                 definition.setApiDefinition(new ApiDefinition()
                         .setLabel(api.label())
                         .setDesc(api.desc()).setUrl(definition.getMapping())
+                        .setContentType(api.apiContentType())
                         .setHostPort("http://" + ctx.getHostPort())
                         .generalDefArgs(api.args(), definition.getMappingMethod())
+                        .generalKvs(api.kvs())
+                        .generalDto(api.dtoClass())
                 );
                 if (null != methodFilter) {
                     definition.getApiDefinition().setAcceptRequestMethods(methodFilter.value());
